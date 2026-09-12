@@ -328,6 +328,20 @@ export function Studio() {
             {completed ? "COMPLETED" : "GUIDED MISSION"}
           </span>
         </div>
+        <button
+          className="button primary mission-launch"
+          aria-label={`Run mission: ${mission.cta}`}
+          disabled={busy}
+          onClick={() => run()}
+        >
+          {busy ? (
+            <LoaderCircle className="spin" size={14} />
+          ) : (
+            <Play size={14} />
+          )}
+          {busy ? "Applying change…" : mission.cta}
+          <ArrowRight size={15} />
+        </button>
         <div className="mission-pager">
           <button
             className="icon-button"

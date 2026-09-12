@@ -103,7 +103,11 @@ export function Shell({ children }: { children: ReactNode }) {
             >
               <Icon size={18} />
               <span>{label}</span>
-              {href === "/studio" && <span className="nav-new">↗</span>}
+              {href === "/studio" && (
+                <span className="nav-new" aria-hidden="true">
+                  ↗
+                </span>
+              )}
             </Link>
           ))}
         </nav>

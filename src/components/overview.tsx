@@ -44,7 +44,7 @@ export function Overview() {
           </h1>
         </div>
         <div className="field-intro">
-          <span className="field-edition">DEVSECOPS FIELDWORK — VOL. 01</span>
+          <span className="field-edition">BUILD → OBSERVE → UNDERSTAND</span>
           <p>
             A claim travels through four services. <br />
             Build the path. Secure every boundary. <br />
@@ -81,7 +81,11 @@ export function Overview() {
               {chapters[mission.chapter].title}
             </span>
             <h2>{mission.title}</h2>
-            <p>{mission.brief}</p>
+            <p>
+              {mission.id === "first-request"
+                ? "A customer submits a claim. Follow it through your system and discover what each component does."
+                : mission.subtitle}
+            </p>
           </div>
           <div className="assignment-bottom">
             <div className="assignment-meta">
@@ -94,10 +98,20 @@ export function Overview() {
               {complete ? "Resume fieldwork" : "Open the workbench"}
               <ArrowRight size={18} />
             </Link>
-            <p>
-              You make the decisions. The studio applies the changes and shows
-              the evidence.
-            </p>
+            <p>No code to type. Every change comes with evidence.</p>
+          </div>
+          <div className="assignment-expectation">
+            <span>IN THIS MISSION</span>
+            <div>
+              <span>01</span>Inspect the system
+            </div>
+            <div>
+              <span>02</span>
+              {mission.cta}
+            </div>
+            <div>
+              <span>03</span>Explain the result
+            </div>
           </div>
         </aside>
       </motion.div>
@@ -178,6 +192,16 @@ export function Overview() {
                   <p>{chapter.description}</p>
                 </div>
                 <span className="chapter-entry-progress">
+                  <span className="chapter-progress-pips" aria-hidden="true">
+                    {chapterMissions.map((m) => (
+                      <i
+                        key={m.id}
+                        className={
+                          progress.completed.includes(m.id) ? "done" : ""
+                        }
+                      />
+                    ))}
+                  </span>
                   {done === 4 ? <Check size={16} /> : `${done} / 4`}
                   <small>
                     {index === mission.chapter ? "IN PROGRESS" : "MISSIONS"}

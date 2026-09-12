@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { ArrowUpRight, Play, RotateCcw } from "lucide-react";
+import {
+  Play,
+  Pause,
+  RotateCcw,
+  ArrowRight,
+  Check,
+  AlertTriangle,
+} from "lucide-react";
 import { initialSystem, type SystemState } from "@/lib/engine";
 
 const components = [
@@ -72,45 +79,106 @@ export function ProjectModel({
   compact?: boolean;
 }) {
   const [selected, setSelected] = useState(2);
-  const [step, setStep] = useState(-1);
+  const [step, setStep] = useState(0);
+  const [phase, setPhase] = useState<
+    "idle" | "playing" | "paused" | "complete"
+  >("idle");
   const pathId = useId().replace(/:/g, "");
+  const lastStep = state.healthy ? 3 : 2;
   useEffect(() => {
-    if (step < 0) return;
+    if (phase !== "playing") return;
     const timer = setTimeout(() => {
-      if (step < 3) {
+      if (step >= lastStep) setPhase("complete");
+      else {
         setStep(step + 1);
         setSelected(step + 1);
-      } else setStep(-1);
-    }, 950);
+      }
+    }, 1200);
     return () => clearTimeout(timer);
-  }, [step]);
-  const replay = () => {
+  }, [phase, step, lastStep]);
+  function replay() {
     setSelected(0);
     setStep(0);
-  };
+    setPhase("playing");
+  }
+  function togglePlayback() {
+    if (phase === "playing") setPhase("paused");
+    else if (phase === "paused") {
+      setStep(Math.min(step, lastStep));
+      setSelected(Math.min(step, lastStep));
+      setPhase("playing");
+    } else replay();
+  }
+  function inspect(index: number) {
+    setSelected(index);
+    setPhase((current) =>
+      current === "playing"
+        ? "paused"
+        : current === "complete"
+          ? "idle"
+          : current,
+    );
+  }
   const pick = (index: number) => ({
     role: "button" as const,
     tabIndex: 0,
     "aria-label": `Explore ${components[index].name}`,
     "aria-pressed": selected === index,
     className: `model-part ${selected === index ? "selected" : ""}`,
-    onClick: () => setSelected(index),
+    onClick: () => inspect(index),
     onKeyDown: (e: React.KeyboardEvent) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        setSelected(index);
+        inspect(index);
       }
     },
   });
+  const status = [
+    "Request origin",
+    state.tls ? "TLS enabled" : "TLS not configured",
+    !state.healthy
+      ? "Service unavailable"
+      : state.authorization
+        ? "Ownership checked"
+        : "Access unchecked",
+    state.backup ? "Backup configured" : "Backup not configured",
+  ][selected];
+  const playbackLabel =
+    phase === "playing"
+      ? "Pause trace"
+      : phase === "paused"
+        ? "Resume trace"
+        : phase === "complete"
+          ? "Replay trace"
+          : "Trace a request";
   return (
     <div
-      className={`project-model ${compact ? "compact" : ""} ${step >= 0 ? "is-replaying" : ""}`}
+      className={`project-model ${compact ? "compact" : ""} ${phase === "playing" ? "is-replaying" : ""}`}
     >
       <div className="model-caption">
         <span>
-          <i /> SYSTEM STUDY / 001
+          <i /> SYSTEM ARCHITECTURE{" "}
+          <small className="model-mode">Simulation</small>
         </span>
-        <span>INTERACTIVE MODEL</span>
+        <div>
+          {phase !== "idle" && (
+            <button
+              className="model-reset"
+              aria-label="Restart request trace"
+              onClick={replay}
+            >
+              <RotateCcw size={14} />
+            </button>
+          )}
+          <button
+            className="model-replay"
+            onClick={togglePlayback}
+            aria-label={playbackLabel}
+          >
+            {phase === "playing" ? <Pause size={14} /> : <Play size={14} />}
+            <span>{playbackLabel}</span>
+          </button>
+        </div>
       </div>
       <svg
         className="model-drawing"
@@ -172,13 +240,6 @@ export function ProjectModel({
           stroke="#8c947e"
           strokeDasharray="4 4"
         />
-        {step >= 0 && (
-          <circle className="model-packet" r="4" fill="#f16a3d">
-            <animateMotion dur="3.8s" repeatCount="1">
-              <mpath href={`#${pathId}-route`} />
-            </animateMotion>
-          </circle>
-        )}
         <g {...pick(0)}>
           <ellipse
             className="model-selection"
@@ -337,28 +398,74 @@ export function ProjectModel({
             CONCEPTUAL / NOT TO SCALE
           </text>
         </g>
+        {phase !== "idle" && (
+          <circle
+            className="model-packet"
+            r="4.5"
+            fill="#d16a42"
+            stroke="#fff1d6"
+            strokeWidth="2"
+            style={{
+              offsetPath:
+                "path('M158 265L220 296L318 247L385 280L440 252L502 283L585 241')",
+              offsetDistance: `${[0, 37.45, 66.02, 100][step]}%`,
+            }}
+          />
+        )}
       </svg>
-      <div className="model-details" aria-live="polite">
-        <div>
-          <span>{components[selected].role}</span>
-          <strong>
-            {components[selected].name} <ArrowUpRight size={15} />
-          </strong>
+      <div
+        className="model-sequence"
+        role="group"
+        aria-label="Request path components"
+      >
+        {["Portal", "Gateway", "Service", "Database"].map((name, index) => (
+          <button
+            key={name}
+            onClick={() => inspect(index)}
+            aria-label={`Inspect ${components[index].name} in the model`}
+            aria-pressed={selected === index}
+            className={selected === index ? "selected" : ""}
+          >
+            <span>{String(index + 1).padStart(2, "0")}</span>
+            {name}
+            {index < 3 && <ArrowRight size={12} />}
+          </button>
+        ))}
+      </div>
+      <div className="model-details">
+        <div className="model-explanation" aria-live="polite">
+          <div className="model-detail-heading">
+            <strong>{components[selected].name}</strong>
+            <span
+              className={`model-component-status ${!state.healthy && selected === 2 ? "unhealthy" : ""}`}
+            >
+              {status}
+            </span>
+          </div>
           <p>{components[selected].text}</p>
         </div>
-        <button
-          className="model-replay"
-          onClick={replay}
-          disabled={step >= 0}
-          aria-label="Replay simulated request"
-        >
-          {step >= 0 ? (
-            <RotateCcw size={16} className="spin" />
+      </div>
+      <div className="model-transport">
+        <span className="model-playback-status" role="status">
+          {phase === "complete" ? (
+            <>
+              {state.healthy ? (
+                <Check size={12} />
+              ) : (
+                <AlertTriangle size={12} />
+              )}
+              {state.healthy
+                ? "Request path complete"
+                : "Stopped at unavailable service"}
+            </>
+          ) : phase === "playing" ? (
+            `Following request · ${step + 1} / 4`
+          ) : phase === "paused" ? (
+            `Paused at step ${step + 1}`
           ) : (
-            <Play size={16} />
+            "Select a component to inspect"
           )}
-          <span>{step >= 0 ? `Step ${step + 1} / 4` : "Trace a request"}</span>
-        </button>
+        </span>
       </div>
     </div>
   );
