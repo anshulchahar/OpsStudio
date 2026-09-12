@@ -22,18 +22,23 @@ import { Brand } from "./brand";
 import { useStudio } from "./app-provider";
 import { Dialog } from "./dialog";
 import { missions } from "@/lib/curriculum";
+import {
+  getLearningProgress,
+  isMissionUnlocked,
+} from "@/lib/learning-progress";
 
 const navigation = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
   { href: "/studio", label: "Workbench", icon: Network },
-  { href: "/journey", label: "Field guide", icon: Route },
+  { href: "/journey", label: "Mission path", icon: Route },
   { href: "/notebook", label: "Notebook", icon: NotebookPen },
   { href: "/updates", label: "Release radar", icon: Radar },
 ];
 export function Shell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const router = useRouter();
-  const { user, progress, update } = useStudio();
+  const { user, progress, update, ready } = useStudio();
+  const learning = getLearningProgress(progress.completed);
   const [mobile, setMobile] = useState(false);
   const [search, setSearch] = useState(false);
   const [query, setQuery] = useState("");
@@ -121,13 +126,13 @@ export function Shell({ children }: { children: ReactNode }) {
           <div className="sidebar-progress">
             <span>PROJECT COMPLETION</span>
             <strong>
-              {Math.round((progress.completed.length / missions.length) * 100)}%
+              {Math.round((learning.completedCount / missions.length) * 100)}%
             </strong>
           </div>
           <div className="progress-track">
             <i
               style={{
-                width: `${(progress.completed.length / missions.length) * 100}%`,
+                width: `${(learning.completedCount / missions.length) * 100}%`,
               }}
             />
           </div>
@@ -234,6 +239,10 @@ export function Shell({ children }: { children: ReactNode }) {
           {results.map((m) => (
             <button
               key={m.id}
+              disabled={
+                !ready ||
+                !isMissionUnlocked(missions.indexOf(m), progress.completed)
+              }
               onClick={() => {
                 update((p) => ({ ...p, activeMission: missions.indexOf(m) }));
                 setSearch(false);
@@ -242,7 +251,11 @@ export function Shell({ children }: { children: ReactNode }) {
             >
               <span>
                 {m.title}
-                <small>{m.subtitle}</small>
+                <small>
+                  {isMissionUnlocked(missions.indexOf(m), progress.completed)
+                    ? m.subtitle
+                    : `Complete mission ${(learning.nextMissionIndex ?? 0) + 1} first`}
+                </small>
               </span>
               <ArrowUpRight size={17} />
             </button>
@@ -264,11 +277,15 @@ export function Shell({ children }: { children: ReactNode }) {
             OpsStudio handles the implementation steps.
           </p>
           <ol>
-            <li>Choose a mission and read the situation.</li>
-            <li>Explore the system map. Select a component to look inside.</li>
-            <li>Run the mission action and follow the evidence.</li>
-            <li>Make a decision, reflect, and move forward.</li>
+            <li>Make a change. One button applies your mission’s action.</li>
+            <li>See the result. Follow what changed and why it matters.</li>
+            <li>Make a decision. Earn 100 XP and unlock the next mission.</li>
           </ol>
+          <p>
+            Hints are free, replays are for practice, and every four completed
+            missions earn a chapter badge. Code, requests, and experiments are
+            under Explore tools.
+          </p>
           <p>
             <strong>Simulation</strong> lets you explore safely at no API cost.{" "}
             <strong>Real verification</strong> runs supported recipes in an
@@ -280,7 +297,7 @@ export function Shell({ children }: { children: ReactNode }) {
             className="button primary"
             onClick={() => setHelp(false)}
           >
-            Let’s explore <ArrowUpRight size={16} />
+            Open the workbench <ArrowUpRight size={16} />
           </Link>
         </div>
       </Dialog>

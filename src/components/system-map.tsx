@@ -177,7 +177,7 @@ export function SystemMap({
   useEffect(() => {
     if (!containerRef.current) return;
     const observer = new ResizeObserver(([entry]) =>
-      setNarrow(entry.contentRect.width < 480),
+      setNarrow(entry.contentRect.width < 680),
     );
     observer.observe(containerRef.current);
     return () => observer.disconnect();

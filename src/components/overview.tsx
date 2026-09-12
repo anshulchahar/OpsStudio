@@ -8,11 +8,17 @@ import {
   Check,
   Clock3,
   GitCommitHorizontal,
+  LockKeyhole,
+  Award,
 } from "lucide-react";
 import { useStudio } from "./app-provider";
 import { ProjectModel } from "./project-model";
 import { chapters, missions } from "@/lib/curriculum";
-import { securityScore } from "@/lib/engine";
+import {
+  getLearningProgress,
+  isMissionUnlocked,
+  MISSION_XP,
+} from "@/lib/learning-progress";
 
 export function Blueprint() {
   return <ProjectModel compact />;
@@ -20,10 +26,20 @@ export function Blueprint() {
 
 export function Overview() {
   const router = useRouter();
-  const { progress, update } = useStudio();
-  const mission = missions[progress.activeMission];
-  const complete = progress.completed.length;
+  const { progress, update, ready } = useStudio();
+  const learning = getLearningProgress(progress.completed);
+  const nextIndex = learning.nextMissionIndex;
+  const mission = missions[nextIndex ?? missions.length - 1];
+  const complete = learning.completedCount;
+  const firstBadgeRemaining = missions.filter(
+    (item) => item.chapter === 0 && !progress.completed.includes(item.id),
+  ).length;
   const recent = progress.checkpoints.slice(-3).reverse();
+  function openMission(index: number) {
+    if (!ready || !isMissionUnlocked(index, progress.completed)) return;
+    update((p) => ({ ...p, activeMission: index }));
+    router.push("/studio");
+  }
   return (
     <div className="page overview-page field-workspace">
       <motion.header
@@ -44,14 +60,13 @@ export function Overview() {
           </h1>
         </div>
         <div className="field-intro">
-          <span className="field-edition">BUILD → OBSERVE → UNDERSTAND</span>
+          <span className="field-edition">ONE MISSION AT A TIME</span>
           <p>
-            A claim travels through four services. <br />
-            Build the path. Secure every boundary. <br />
-            Prove it survives a failure.
+            Make a change. See what happens. <br />
+            Make your call, then unlock the next mission.
           </p>
           <Link href="/journey">
-            Explore the project <ArrowUpRight size={16} />
+            View your mission path <ArrowUpRight size={16} />
           </Link>
         </div>
       </motion.header>
@@ -61,17 +76,29 @@ export function Overview() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.1 }}
       >
-        <section
-          className="architecture-sheet"
-          aria-label="Explore the project architecture"
-        >
-          <ProjectModel state={progress.state} />
-        </section>
+        <figure className="architecture-sheet overview-system-preview">
+          <figcaption>
+            <span>THE SYSTEM YOU’LL BUILD</span>
+            <span>SIMULATION</span>
+          </figcaption>
+          <div className="static-project-model" inert aria-hidden="true">
+            <ProjectModel state={progress.state} compact />
+          </div>
+          <p className="overview-system-path">
+            Portal <ArrowRight size={12} /> Gateway <ArrowRight size={12} />
+            Service <ArrowRight size={12} /> Database
+          </p>
+          <p className="overview-system-note">
+            Each mission adds to this system. You’ll explore it as you go.
+          </p>
+        </figure>
         <aside className="assignment-sheet">
           <div className="assignment-top">
-            <span>YOUR NEXT MOVE</span>
+            <span>
+              {nextIndex === null ? "PROJECT COMPLETE" : "YOUR NEXT MISSION"}
+            </span>
             <span className="assignment-index">
-              {String(progress.activeMission + 1).padStart(2, "0")}
+              {String((nextIndex ?? missions.length - 1) + 1).padStart(2, "0")}
               <small> / 20</small>
             </span>
           </div>
@@ -80,11 +107,15 @@ export function Overview() {
               CHAPTER {String(mission.chapter + 1).padStart(2, "0")} /{" "}
               {chapters[mission.chapter].title}
             </span>
-            <h2>{mission.title}</h2>
+            <h2>
+              {nextIndex === null ? "You built the whole path." : mission.title}
+            </h2>
             <p>
-              {mission.id === "first-request"
-                ? "A customer submits a claim. Follow it through your system and discover what each component does."
-                : mission.subtitle}
+              {nextIndex === null
+                ? "Twenty changes, twenty decisions. Revisit a mission to see how the pieces work together."
+                : mission.id === "first-request"
+                  ? "A customer submits a claim. Follow it through your system and discover what each component does."
+                  : mission.subtitle}
             </p>
           </div>
           <div className="assignment-bottom">
@@ -92,30 +123,75 @@ export function Overview() {
               <span>
                 <Clock3 size={13} /> {mission.duration} MINUTES
               </span>
-              <span>GUIDED SIMULATION</span>
+              <span>
+                {nextIndex === null
+                  ? "ALL MISSIONS VERIFIED"
+                  : `+${MISSION_XP} XP`}
+              </span>
             </div>
-            <Link href="/studio" className="button primary assignment-cta">
-              {complete ? "Resume fieldwork" : "Open the workbench"}
-              <ArrowRight size={18} />
-            </Link>
-            <p>No code to type. Every change comes with evidence.</p>
+            {nextIndex === null ? (
+              <Link href="/journey" className="button primary assignment-cta">
+                Review your missions <ArrowRight size={18} />
+              </Link>
+            ) : (
+              <button
+                className="button primary assignment-cta"
+                disabled={!ready}
+                onClick={() => openMission(nextIndex)}
+              >
+                {!ready
+                  ? "Loading your progress…"
+                  : complete
+                    ? `Continue mission ${nextIndex + 1}`
+                    : "Start mission 1"}
+                <ArrowRight size={18} />
+              </button>
+            )}
+            <p>No code to type. Hints whenever you need them.</p>
           </div>
           <div className="assignment-expectation">
-            <span>IN THIS MISSION</span>
+            <span>YOUR THREE STEPS</span>
             <div>
-              <span>01</span>Inspect the system
+              <span>01</span>Make a change
             </div>
             <div>
               <span>02</span>
-              {mission.cta}
+              See the result
             </div>
             <div>
-              <span>03</span>Explain the result
+              <span>03</span>Make your call
             </div>
           </div>
         </aside>
       </motion.div>
-      <div className="project-instruments" aria-label="Project progress">
+      <div
+        className="project-instruments learning-instruments"
+        aria-label="Your learning progress"
+      >
+        <div className="learning-level-instrument">
+          <span className="instrument-label">
+            LEVEL {learning.level} · {learning.levelTitle.toUpperCase()}
+          </span>
+          <strong>
+            {learning.xp}
+            <small> XP</small>
+          </strong>
+          <div
+            className="learning-level-track"
+            role="progressbar"
+            aria-label="Progress to next level"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={learning.levelProgress}
+          >
+            <span style={{ width: `${learning.levelProgress}%` }} />
+          </div>
+          <span className="instrument-note">
+            {complete === missions.length
+              ? "Every mission verified"
+              : "100 XP for each verified decision"}
+          </span>
+        </div>
         <div>
           <span className="instrument-label">MISSIONS COMPLETED</span>
           <strong>
@@ -132,19 +208,15 @@ export function Overview() {
           </div>
         </div>
         <div>
-          <span className="instrument-label">SECURITY CONTROLS</span>
+          <span className="instrument-label">CHAPTER BADGES</span>
           <strong>
-            {securityScore(progress.state)}
-            <small>%</small>
+            {String(learning.earnedBadges.length).padStart(2, "0")}
+            <small> / 5</small>
           </strong>
-          <span className="instrument-note">Enabled in your simulation</span>
-        </div>
-        <div>
-          <span className="instrument-label">REAL VERIFICATION</span>
-          <strong>
-            02<small> LABS</small>
-          </strong>
-          <span className="instrument-note">Isolated Node.js environments</span>
+          <span className="instrument-note">
+            {learning.earnedBadges.at(-1)?.title ??
+              `${firstBadgeRemaining} ${firstBadgeRemaining === 1 ? "mission" : "missions"} to your first badge`}
+          </span>
         </div>
       </div>
       <section className="field-syllabus">
@@ -169,27 +241,32 @@ export function Overview() {
             const done = chapterMissions.filter((m) =>
               progress.completed.includes(m.id),
             ).length;
-            const nextIndex = missions.findIndex(
+            const chapterNextIndex = missions.findIndex(
               (m) => m.chapter === index && !progress.completed.includes(m.id),
+            );
+            const targetIndex =
+              chapterNextIndex < 0 ? index * 4 : chapterNextIndex;
+            const unlocked = isMissionUnlocked(targetIndex, progress.completed);
+            const badge = learning.earnedBadges.find(
+              (item) => item.chapter === index,
             );
             return (
               <button
-                className={`chapter-entry ${index === mission.chapter ? "current" : ""}`}
+                className={`chapter-entry ${index === mission.chapter && nextIndex !== null ? "current" : ""} ${unlocked ? "" : "locked"}`}
                 key={chapter.title}
-                onClick={() => {
-                  update((p) => ({
-                    ...p,
-                    activeMission: nextIndex < 0 ? index * 4 : nextIndex,
-                  }));
-                  router.push("/studio");
-                }}
+                disabled={!ready || !unlocked}
+                onClick={() => openMission(targetIndex)}
               >
                 <span className="chapter-entry-number">
                   {String(index + 1).padStart(2, "0")}
                 </span>
                 <div>
                   <h3>{chapter.title}</h3>
-                  <p>{chapter.description}</p>
+                  <p>
+                    {!unlocked
+                      ? `Complete mission ${(nextIndex ?? 0) + 1} to keep moving along the path.`
+                      : chapter.description}
+                  </p>
                 </div>
                 <span className="chapter-entry-progress">
                   <span className="chapter-progress-pips" aria-hidden="true">
@@ -202,12 +279,22 @@ export function Overview() {
                       />
                     ))}
                   </span>
-                  {done === 4 ? <Check size={16} /> : `${done} / 4`}
+                  {badge ? (
+                    <Award size={16} />
+                  ) : !unlocked ? (
+                    <LockKeyhole size={14} />
+                  ) : (
+                    `${done} / 4`
+                  )}
                   <small>
-                    {index === mission.chapter ? "IN PROGRESS" : "MISSIONS"}
+                    {badge
+                      ? "BADGE EARNED"
+                      : !unlocked
+                        ? "UPCOMING"
+                        : "UP NEXT"}
                   </small>
                 </span>
-                <ArrowUpRight size={21} />
+                {done === 4 ? <Check size={18} /> : <ArrowUpRight size={21} />}
               </button>
             );
           })}

@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
@@ -10,57 +11,132 @@ import {
   Activity,
   Layers,
   FlaskConical,
+  LockKeyhole,
+  Award,
 } from "lucide-react";
 import { useStudio } from "./app-provider";
 import { chapters, missions } from "@/lib/curriculum";
+import {
+  getLearningProgress,
+  isMissionUnlocked,
+  MISSION_XP,
+} from "@/lib/learning-progress";
 export function Journey() {
-  const { progress, update } = useStudio();
+  const { progress, update, ready } = useStudio();
   const router = useRouter();
+  const learning = getLearningProgress(progress.completed);
+  const nextIndex = learning.nextMissionIndex;
+  const nextMission = nextIndex === null ? null : missions[nextIndex];
+  function openMission(index: number) {
+    if (!ready || !isMissionUnlocked(index, progress.completed)) return;
+    update((p) => ({ ...p, activeMission: index }));
+    router.push("/studio");
+  }
   return (
-    <div className="page journey-page">
+    <div className="page journey-page guided-journey">
       <div className="page-heading">
         <div>
-          <div className="eyebrow">THE FIELD GUIDE</div>
+          <div className="eyebrow">YOUR LEARNING PATH</div>
           <h1>
-            TWENTY DECISIONS. <span>ONE SYSTEM.</span>
+            ONE MISSION. <span>THEN THE NEXT.</span>
           </h1>
           <p>
-            Build the claims platform from its first request to disaster
-            recovery. Each mission leaves a change you can inspect.
+            Build a change, see the result, and make your call. Every verified
+            mission earns {MISSION_XP} XP and opens the next step.
           </p>
         </div>
         <div className="journey-total">
           <strong>
-            {progress.completed.length}
+            {learning.completedCount}
             <span>/20</span>
           </strong>
           <small>missions completed</small>
         </div>
       </div>
-      <div className="journey-banner">
-        <span className="northstar-mark">✦</span>
-        <div>
-          <strong>Project 001 / Northstar Insurance</strong>
+      <section className="journey-next" aria-label="Your next mission">
+        <div className="journey-next-copy">
+          <span className="eyebrow">
+            {nextMission ? "UP NEXT" : "PROJECT COMPLETE"}
+          </span>
+          <h2>{nextMission?.title ?? "Your claims platform is complete."}</h2>
           <p>
-            Follow one claims service from its first request to a resilient,
-            secure system.
+            {nextMission
+              ? `Mission ${nextIndex! + 1} · ${nextMission.duration} minutes · Guided simulation`
+              : "Revisit any mission below. Your learning record stays with you."}
           </p>
         </div>
-        <span className="small-tag">5 CONNECTED CHAPTERS</span>
+        {nextIndex !== null ? (
+          <button
+            className="button primary"
+            disabled={!ready}
+            onClick={() => openMission(nextIndex)}
+          >
+            {learning.completedCount
+              ? `Continue mission ${nextIndex + 1}`
+              : "Start mission 1"}
+            <ArrowRight size={16} />
+          </button>
+        ) : (
+          <Link href="/notebook" className="button primary">
+            Open your notebook <ArrowRight size={16} />
+          </Link>
+        )}
+      </section>
+      <div className="journey-learning-record">
+        <div>
+          <span className="journey-level-number">
+            {String(learning.level).padStart(2, "0")}
+          </span>
+          <span>
+            <small>YOUR LEVEL</small>
+            <strong>{learning.levelTitle}</strong>
+          </span>
+        </div>
+        <div className="journey-xp-progress">
+          <span>
+            <strong>{learning.xp} XP</strong>
+            <small>
+              {learning.completedCount === missions.length
+                ? "All missions verified"
+                : "Every four missions, a new level"}
+            </small>
+          </span>
+          <div
+            className="learning-level-track"
+            role="progressbar"
+            aria-label="Progress to next level"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={learning.levelProgress}
+          >
+            <span style={{ width: `${learning.levelProgress}%` }} />
+          </div>
+        </div>
+        <span className="journey-badge-count">
+          <Award size={21} />
+          <strong>{learning.earnedBadges.length} / 5</strong> badges earned
+        </span>
       </div>
       <div className="journey-chapters">
         {chapters.map((chapter, index) => {
           const Icon = [Network, GitBranch, ShieldCheck, Activity, Layers][
             index
           ];
+          const chapterMissions = missions.filter((m) => m.chapter === index);
+          const done = chapterMissions.filter((m) =>
+            progress.completed.includes(m.id),
+          ).length;
+          const badge = learning.earnedBadges.find(
+            (item) => item.chapter === index,
+          );
           return (
             <section
               key={chapter.title}
-              className={`journey-chapter ${chapter.color}`}
+              className={`journey-chapter ${chapter.color} ${badge ? "chapter-earned" : ""}`}
             >
               <div className="chapter-rail">
                 <span className={`chapter-icon ${chapter.color}`}>
-                  <Icon size={23} />
+                  {badge ? <Award size={23} /> : <Icon size={23} />}
                 </span>
                 <i />
               </div>
@@ -73,53 +149,77 @@ export function Journey() {
                     <h2>{chapter.title}</h2>
                     <p>{chapter.description}</p>
                   </div>
-                  <span>
-                    {
-                      missions.filter(
-                        (m) =>
-                          m.chapter === index &&
-                          progress.completed.includes(m.id),
-                      ).length
-                    }
-                    /4 complete
+                  <span className="journey-chapter-reward">
+                    {badge ? (
+                      <>
+                        <Award size={14} />
+                        {badge.title}
+                      </>
+                    ) : (
+                      <>
+                        {done}/4 complete
+                        <small>Complete all four to earn a badge</small>
+                      </>
+                    )}
                   </span>
                 </div>
                 <div className="journey-missions">
-                  {missions
-                    .filter((m) => m.chapter === index)
-                    .map((m) => (
+                  {chapterMissions.map((m) => {
+                    const missionIndex = missions.indexOf(m);
+                    const completed = progress.completed.includes(m.id);
+                    const unlocked = isMissionUnlocked(
+                      missionIndex,
+                      progress.completed,
+                    );
+                    const recommended = missionIndex === nextIndex;
+                    return (
                       <button
                         key={m.id}
-                        className={
-                          progress.completed.includes(m.id) ? "completed" : ""
-                        }
-                        onClick={() => {
-                          update((p) => ({
-                            ...p,
-                            activeMission: missions.indexOf(m),
-                          }));
-                          router.push("/studio");
-                        }}
+                        className={`${completed ? "completed" : ""} ${recommended ? "recommended" : ""} ${unlocked ? "" : "locked"}`}
+                        disabled={!ready || !unlocked}
+                        onClick={() => openMission(missionIndex)}
+                        aria-current={recommended ? "step" : undefined}
                       >
                         <span className="mission-circle">
-                          {progress.completed.includes(m.id) ? (
+                          {completed ? (
                             <Check size={15} />
+                          ) : !unlocked ? (
+                            <LockKeyhole size={12} />
                           ) : (
-                            String(missions.indexOf(m) + 1).padStart(2, "0")
+                            String(missionIndex + 1).padStart(2, "0")
                           )}
                         </span>
-                        <div>
-                          <h3>{m.title}</h3>
-                          <p>{m.subtitle}</p>
+                        <div className="journey-mission-copy">
+                          <h3>
+                            {m.title}
+                            {recommended && (
+                              <span className="journey-next-label">
+                                UP NEXT
+                              </span>
+                            )}
+                          </h3>
+                          <p>
+                            {!unlocked
+                              ? `Complete mission ${(nextIndex ?? 0) + 1} first`
+                              : completed
+                                ? "Decision verified · Replay any time"
+                                : m.subtitle}
+                          </p>
                         </div>
                         <span className="mission-time">
                           {m.lab && <FlaskConical size={14} />}
                           <Clock3 size={13} />
                           {m.duration} min
                         </span>
-                        <ArrowRight size={17} />
+                        <span className="journey-mission-xp">
+                          {completed
+                            ? `${MISSION_XP} XP earned`
+                            : `+${MISSION_XP} XP`}
+                        </span>
+                        {unlocked && <ArrowRight size={17} />}
                       </button>
-                    ))}
+                    );
+                  })}
                 </div>
               </div>
             </section>
@@ -129,10 +229,10 @@ export function Journey() {
       <div className="journey-note">
         <ShieldCheck size={20} />
         <p>
-          <strong>Understanding grows through practice.</strong> Advanced
-          chapters currently use simulations. Two foundational recipes also run
-          real HTTP checks in isolated VMs. Completing a chapter is a learning
-          milestone, not a professional certification.
+          <strong>Hints help. They never cost you XP.</strong> A correct
+          decision after a mission earns its reward once. Chapters use
+          simulations, with two optional recipes that run real HTTP checks in
+          isolated VMs.
         </p>
       </div>
     </div>

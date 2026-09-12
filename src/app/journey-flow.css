@@ -1,0 +1,399 @@
+/* A clear mission path, using the workbench's paper, olive and copper palette. */
+.overview-system-preview {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 22px 0;
+}
+.overview-system-preview figcaption {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 0 24px;
+  color: var(--muted);
+  font: 9px/1.5 var(--font-mono);
+  letter-spacing: 0.05em;
+}
+.static-project-model {
+  pointer-events: none;
+}
+.static-project-model .model-caption,
+.static-project-model .model-sequence,
+.static-project-model .model-details,
+.static-project-model .model-transport {
+  display: none;
+}
+.static-project-model .project-model {
+  background: transparent;
+}
+.static-project-model .project-model.compact .model-drawing {
+  height: auto;
+  max-height: 350px;
+  min-height: 270px;
+}
+.overview-system-path {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 0 20px;
+  color: #536147;
+  font: 11px/1.6 var(--font-mono);
+}
+.overview-system-path svg {
+  color: #8e9b7d;
+}
+.overview-system-note {
+  margin: 10px 20px 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.learning-instruments {
+  grid-template-columns: 1.15fr 1fr 1fr;
+}
+.learning-level-track {
+  height: 5px;
+  overflow: hidden;
+  background: #dde2d3;
+  border-radius: 3px;
+}
+.learning-level-track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #9a4c32;
+  transition: width 0.5s ease;
+}
+.learning-level-instrument .learning-level-track {
+  min-width: 50px;
+}
+.learning-instruments .instrument-note {
+  grid-column: 1/-1;
+  margin-top: 8px;
+  font-size: 10px;
+}
+.chapter-entry.locked,
+.chapter-entry.locked:hover {
+  background: transparent;
+  cursor: not-allowed;
+  opacity: 1;
+}
+.chapter-entry.locked h3 {
+  color: #697260;
+}
+.chapter-entry.locked .chapter-entry-number,
+.chapter-entry.locked > svg {
+  color: #9ba28f;
+}
+.chapter-entry.locked .chapter-entry-progress {
+  color: #77836b;
+}
+.guided-journey .page-heading h1 {
+  max-width: 800px;
+}
+.guided-journey .page-heading p {
+  max-width: 610px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.journey-next {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 25px 28px;
+  border: 1px solid #c9d0bc;
+  border-left: 3px solid #a65538;
+  border-radius: 6px;
+  background: #fffdf7;
+}
+.journey-next h2 {
+  margin: 6px 0 7px;
+  color: #303a2b;
+  font: 500 29px/1.15 var(--font-heading);
+}
+.journey-next p {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.journey-next > .button {
+  flex-shrink: 0;
+  min-height: 43px;
+}
+.journey-learning-record {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr auto;
+  align-items: center;
+  gap: 32px;
+  margin: 0 0 32px;
+  padding: 23px 0;
+  border-bottom: 1px solid var(--line);
+}
+.journey-learning-record > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+.journey-level-number {
+  color: #a65538;
+  font: 500 36px/1 var(--font-heading);
+}
+.journey-learning-record small {
+  display: block;
+  color: var(--muted);
+  font: 9px/1.5 var(--font-mono);
+}
+.journey-learning-record strong {
+  display: block;
+  margin-top: 3px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+}
+.journey-xp-progress > span {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+.journey-xp-progress strong {
+  margin: 0;
+  font: 11px var(--font-mono);
+}
+.journey-badge-count {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.journey-badge-count > svg {
+  color: #8b6543;
+}
+.journey-badge-count strong {
+  margin: 0;
+}
+.guided-journey .journey-chapter-heading > .journey-chapter-reward {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 7px;
+  max-width: 220px;
+  text-align: right;
+  color: #67795a;
+  font: 10px/1.6 var(--font-mono);
+}
+.journey-chapter-reward small {
+  display: block;
+  width: 100%;
+  color: var(--muted);
+  font: 10px/1.5 var(--font-body);
+}
+.guided-journey .chapter-earned .chapter-icon {
+  background: #e7eddc;
+  color: #536842;
+  border-color: #bfcdb0;
+}
+.guided-journey .journey-missions > button {
+  min-height: 83px;
+  gap: 14px;
+  padding: 17px 18px;
+}
+.guided-journey .journey-missions > button.recommended {
+  background: #f2f0e5;
+  box-shadow: inset 3px 0 #a65538;
+}
+.guided-journey .journey-missions > button.recommended:hover {
+  background: #eeebdb;
+}
+.guided-journey .journey-missions > button.recommended .mission-circle {
+  color: #8c442e;
+  border-color: #c9a48b;
+  background: #fbf4e8;
+}
+.guided-journey .journey-missions > button.locked,
+.guided-journey .journey-missions > button.locked:hover {
+  background: #f6f5ee;
+  opacity: 1;
+  cursor: not-allowed;
+}
+.guided-journey .journey-missions > button.locked h3 {
+  color: #737b6b;
+}
+.guided-journey .journey-missions h3 {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.guided-journey .journey-missions p {
+  font-size: 11px;
+  line-height: 1.6;
+}
+.journey-mission-copy {
+  flex: 1;
+  min-width: 0;
+}
+.journey-next-label {
+  padding: 3px 5px;
+  border-radius: 3px;
+  background: #e5dac6;
+  color: #7b4c30;
+  font: 8px/1.2 var(--font-mono);
+  letter-spacing: 0.03em;
+}
+.guided-journey .mission-time {
+  margin-left: 0;
+  color: #707d65;
+  font-size: 10px;
+}
+.journey-mission-xp {
+  min-width: 75px;
+  text-align: right;
+  color: #89704c;
+  font: 9px/1.5 var(--font-mono);
+}
+.guided-journey .completed .journey-mission-xp {
+  color: #687d51;
+}
+@media (max-width: 1100px) {
+  .journey-learning-record {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .journey-badge-count {
+    grid-column: 1/-1;
+  }
+  .journey-mission-xp {
+    min-width: auto;
+  }
+  .guided-journey .journey-missions > button {
+    gap: 11px;
+  }
+}
+@media (max-width: 720px) {
+  .overview-system-preview {
+    padding: 20px 0;
+  }
+  .static-project-model .project-model.compact .model-drawing {
+    min-height: 0;
+    max-height: 270px;
+  }
+  .overview-system-path {
+    font-size: 9px;
+    gap: 8px;
+  }
+  .learning-instruments {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .learning-instruments > div {
+    padding: 0;
+    border: 0;
+    grid-template-columns: 90px 1fr;
+  }
+  .learning-instruments > div + div {
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+  }
+  .learning-instruments .instrument-note {
+    grid-column: 2;
+    margin-top: 4px;
+  }
+  .guided-journey .page-heading h1 {
+    font-size: 42px;
+    line-height: 1.04;
+  }
+  .journey-next {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 20px;
+    gap: 19px;
+  }
+  .journey-next h2 {
+    font-size: 28px;
+  }
+  .journey-next > .button {
+    justify-content: space-between;
+  }
+  .journey-learning-record {
+    gap: 17px;
+    margin-bottom: 27px;
+  }
+  .journey-xp-progress {
+    grid-column: 1/-1;
+    grid-row: 2;
+  }
+  .journey-badge-count {
+    grid-column: 2;
+    justify-content: flex-end;
+    font-size: 10px;
+  }
+  .guided-journey .journey-chapter-heading {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .guided-journey .journey-chapter-heading h2 {
+    font-size: 25px;
+  }
+  .guided-journey .journey-chapter-heading > .journey-chapter-reward {
+    max-width: none;
+    justify-content: flex-start;
+    text-align: left;
+  }
+  .journey-chapter-reward small {
+    width: auto;
+  }
+  .guided-journey .journey-missions > button {
+    display: grid;
+    grid-template-columns: 26px minmax(0, 1fr) auto;
+    column-gap: 9px;
+    row-gap: 8px;
+    padding: 15px 12px;
+  }
+  .guided-journey .journey-missions h3 {
+    font-size: 13px;
+  }
+  .guided-journey .journey-missions p {
+    font-size: 10px;
+  }
+  .guided-journey .mission-circle {
+    grid-column: 1;
+    grid-row: 1;
+    width: 25px;
+    height: 25px;
+    align-self: start;
+  }
+  .journey-mission-copy {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .guided-journey .mission-time {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .journey-mission-xp {
+    grid-column: 2/-1;
+    grid-row: 2;
+  }
+  .guided-journey .journey-missions > button > svg {
+    grid-column: 3;
+    grid-row: 1;
+    width: 14px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .learning-level-track > span {
+    transition: none;
+  }
+}

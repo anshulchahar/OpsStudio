@@ -1,16 +1,16 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowRight,
   ArrowUpRight,
   Check,
   CheckCheck,
   ChevronDown,
-  ChevronLeft,
   ChevronRight,
   Clock3,
+  Award,
+  LockKeyhole,
   Code2,
   Download,
   ExternalLink,
@@ -40,6 +40,11 @@ import {
   type ActionId,
 } from "@/lib/engine";
 import { artifacts } from "@/lib/artifacts";
+import { MissionFlow, type MissionStage } from "./mission-flow";
+import {
+  getLearningProgress,
+  isMissionUnlocked,
+} from "@/lib/learning-progress";
 
 type Answer = {
   missionId: string;
@@ -85,9 +90,21 @@ const actionTargets: Record<ActionId, string[]> = {
 };
 
 export function Studio() {
-  const { progress, update, user, notify, sync } = useStudio();
+  const { progress } = useStudio();
+  return <MissionStudio key={progress.activeMission} />;
+}
+
+function MissionStudio() {
+  const { progress, update, user, notify, sync, ready } = useStudio();
   const mission = missions[progress.activeMission];
-  const [tab, setTab] = useState<"map" | "evidence" | "artifacts">("map");
+  const [tab, setTab] = useState<"evidence" | "artifacts">("evidence");
+  const [stageOverride, setStage] = useState<MissionStage | null>(null);
+  const [earnedNow, setEarnedNow] = useState(false);
+  const [missionExecution, setMissionExecution] = useState<Execution | null>(
+    null,
+  );
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [runError, setRunError] = useState("");
   const [focus, setFocus] = useState<string | null>(null);
   const [sideTab, setSideTab] = useState<"mentor" | "inspect">("mentor");
   const [busy, setBusy] = useState(false);
@@ -130,6 +147,12 @@ export function Studio() {
   const currentExecution =
     execution?.missionId === mission.id ? execution : null;
   const completed = progress.completed.includes(mission.id);
+  const learning = getLearningProgress(progress.completed);
+  const unlocked = isMissionUnlocked(
+    progress.activeMission,
+    progress.completed,
+  );
+  const stage = stageOverride || (completed ? "complete" : "build");
   const hints = hintCounts[mission.id] || 0;
   const currentAnswer = answer?.missionId === mission.id ? answer : null;
   const inspected = focus ? componentDetails[focus] : null;
@@ -138,17 +161,25 @@ export function Studio() {
   const inspect = useCallback((id: string) => {
     setFocus(id);
     setSideTab("inspect");
+    setGuideOpen(true);
   }, []);
 
   async function run(action: ActionId = mission.action) {
-    if (busy) return;
+    if (busy || !ready || !unlocked) return;
     const token = ++runToken.current;
     try {
       const result = executeAction(progress.state, action);
       const before = progress.state;
       setBusy(true);
+      setRunError("");
       setSteps([]);
-      setTab("map");
+      setTab("evidence");
+      if (action === mission.action) {
+        setStage("build");
+        setMissionExecution(null);
+        setEarnedNow(false);
+        setDecision(null);
+      }
       setExecution(null);
       for (const [index, step] of result.steps.entries()) {
         const targets = actionTargets[action];
@@ -171,19 +202,25 @@ export function Studio() {
         ].slice(-30),
       }));
       setExecution({ ...result, missionId: mission.id, action });
+      if (action === mission.action) {
+        setMissionExecution(result);
+        setStage("observe");
+      }
       setBusy(false);
       setActiveNode(null);
       notify(result.summary);
     } catch (error) {
       setBusy(false);
       setActiveNode(null);
-      notify(
-        error instanceof Error ? error.message : "That change could not run.",
-      );
+      const message =
+        error instanceof Error ? error.message : "That change could not run.";
+      setRunError(message);
+      notify(message);
     }
   }
   function chooseMission(index: number) {
-    if (busy) return;
+    if (busy || !ready || !isMissionUnlocked(index, progress.completed)) return;
+    window.scrollTo({ top: 0, behavior: "instant" });
     update((p) => ({ ...p, activeMission: index }));
     setMissionMenu(false);
     setDecision(null);
@@ -193,16 +230,20 @@ export function Studio() {
     setProbe(null);
   }
   function chooseDecision(index: number) {
+    if (!ready || busy || stage !== "decide" || !missionExecution) return;
     setDecision({ missionId: mission.id, index });
-    if (
-      index === mission.decision.correct &&
-      currentExecution?.action === mission.action
-    ) {
+    if (index === mission.decision.correct && missionExecution) {
       update((p) => ({
         ...p,
         completed: [...new Set([...p.completed, mission.id])],
       }));
-      notify("Mission complete. Decision verified.");
+      setEarnedNow(!completed);
+      setStage("complete");
+      notify(
+        completed
+          ? "Practice complete. Your XP is already saved."
+          : "Mission complete. +100 XP earned.",
+      );
     }
   }
   async function ask(event?: React.FormEvent) {
@@ -286,86 +327,141 @@ export function Studio() {
   }
   return (
     <div className="studio-page">
-      <div className="studio-heading">
+      <div className="studio-heading guided-studio-heading">
         <div>
           <div className="eyebrow">
-            <span className="northstar-inline">✦</span>NORTHSTAR INSURANCE
-            <span className="eyebrow-divider">/</span>THE CLAIMS SERVICE
+            NORTHSTAR INSURANCE / YOUR LEARNING JOURNEY
           </div>
-          <h1>THE WORKBENCH.</h1>
+          <h1>ONE CHANGE AT A TIME.</h1>
         </div>
-        <button
-          className="button secondary small"
-          onClick={() => setHistory(true)}
+        <div
+          className="studio-learning-score"
+          aria-label={`Level ${learning.level}, ${learning.xp} XP`}
         >
-          <History size={15} />
-          Checkpoints
-          <span className="button-count">{progress.checkpoints.length}</span>
-        </button>
+          <Award size={22} />
+          <div>
+            <strong>
+              Level {learning.level} <span>· {learning.levelTitle}</span>
+            </strong>
+            <small>
+              {learning.xp.toLocaleString()} XP · {learning.completedCount}/
+              {missions.length} missions
+            </small>
+          </div>
+        </div>
       </div>
-      <div className="mission-strip">
-        <div className="mission-strip-number">
+      <div className="guided-mission-strip">
+        <span className="guided-mission-number">
           {String(progress.activeMission + 1).padStart(2, "0")}
-        </div>
-        <button
-          className="mission-select"
-          onClick={() => setMissionMenu(true)}
-          disabled={busy}
-        >
-          <span>
-            CHAPTER {mission.chapter + 1} ·{" "}
-            {chapters[mission.chapter].title.toUpperCase()}
+        </span>
+        <div>
+          <span className="eyebrow">
+            CHAPTER {mission.chapter + 1} · {chapters[mission.chapter].title}
           </span>
-          <strong>
-            {mission.title}
-            <ChevronDown size={15} />
-          </strong>
-        </button>
-        <div className="mission-strip-meta">
+          <h2>{mission.title}</h2>
+        </div>
+        <span className="guided-duration">
           <Clock3 size={14} />
           {mission.duration} min
-          <span className="small-tag">
-            {completed ? "COMPLETED" : "GUIDED MISSION"}
-          </span>
-        </div>
+        </span>
         <button
-          className="button primary mission-launch"
-          aria-label={`Run mission: ${mission.cta}`}
-          disabled={busy}
-          onClick={() => run()}
+          className="text-link mission-browse"
+          onClick={() => setMissionMenu(true)}
+          disabled={busy || !ready}
         >
-          {busy ? (
-            <LoaderCircle className="spin" size={14} />
-          ) : (
-            <Play size={14} />
-          )}
-          {busy ? "Applying change…" : mission.cta}
-          <ArrowRight size={15} />
+          Missions
+          <ChevronDown size={15} />
         </button>
-        <div className="mission-pager">
-          <button
-            className="icon-button"
-            aria-label="Previous mission"
-            disabled={progress.activeMission === 0 || busy}
-            onClick={() => chooseMission(progress.activeMission - 1)}
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <span>
-            {progress.activeMission + 1} / {missions.length}
-          </span>
-          <button
-            className="icon-button"
-            aria-label="Next mission"
-            disabled={progress.activeMission === missions.length - 1 || busy}
-            onClick={() => chooseMission(progress.activeMission + 1)}
-          >
-            <ChevronRight size={18} />
-          </button>
+      </div>
+      <div className="guided-workspace">
+        <MissionFlow
+          missionIndex={progress.activeMission}
+          stage={stage}
+          busy={busy}
+          ready={ready}
+          completed={completed}
+          earnedNow={earnedNow}
+          completedIds={progress.completed}
+          execution={missionExecution}
+          steps={steps}
+          selectedDecision={
+            decision?.missionId === mission.id ? decision.index : null
+          }
+          error={runError}
+          unlocked={unlocked}
+          hint={hints ? mission.hints[hints - 1] : null}
+          hintNumber={hints}
+          onRun={() => run()}
+          onStage={setStage}
+          onDecision={chooseDecision}
+          onMission={chooseMission}
+          onHint={() =>
+            setHintCounts((p) => ({
+              ...p,
+              [mission.id]: Math.min(hints + 1, 3),
+            }))
+          }
+        />
+        <div className="mission-scene">
+          <div className="mission-scene-heading">
+            <span>
+              <Network size={15} />
+              Your system
+            </span>
+            <span className="simulation-badge">
+              <span />
+              Simulation
+            </span>
+          </div>
+          <SystemMap
+            state={progress.state}
+            running={busy}
+            activeNode={activeNode}
+            focus={focus}
+            onInspect={inspect}
+          />
+          <div className="mission-scene-caption">
+            <span className={`status-dot ${busy ? "is-running" : ""}`} />
+            {busy
+              ? "Following the change through your system"
+              : stage === "build"
+                ? "Your change will appear here. Select a component to explore."
+                : "Your system now reflects the change you made."}
+          </div>
         </div>
       </div>
-      <div className="studio-columns">
-        <div className="studio-main">
+      <div className="mission-support">
+        <div className="mission-support-label">
+          <span className="guide-mark" aria-hidden="true">
+            a/
+          </span>
+          <div>
+            <strong>A little help, when you need it.</strong>
+            <span>Hints never cost XP.</span>
+          </div>
+        </div>
+
+        <button
+          className="text-link"
+          onClick={() => {
+            setSideTab("mentor");
+            setGuideOpen(true);
+          }}
+        >
+          <Sparkles size={15} />
+          Ask Ada
+        </button>
+      </div>
+      <details className="studio-explore">
+        <summary>
+          <div>
+            <Code2 size={17} />
+            <strong>Explore tools</strong>
+            <span>Code, requests, checkpoints & experiments</span>
+          </div>
+          <ChevronDown size={16} />
+        </summary>
+        <div className="studio-explore-body">
           <section className="canvas-card">
             <div className="canvas-toolbar">
               <div
@@ -375,7 +471,6 @@ export function Studio() {
               >
                 {(
                   [
-                    { id: "map", label: "System map", icon: Network },
                     { id: "evidence", label: "Evidence", icon: Terminal },
                     { id: "artifacts", label: "Artifacts", icon: Code2 },
                   ] as const
@@ -400,15 +495,6 @@ export function Studio() {
                 Simulation
               </span>
             </div>
-            {tab === "map" && (
-              <SystemMap
-                state={progress.state}
-                running={busy}
-                activeNode={activeNode}
-                focus={focus}
-                onInspect={inspect}
-              />
-            )}
             {tab === "evidence" && (
               <div className="evidence-view">
                 <div className="evidence-heading">
@@ -528,175 +614,69 @@ export function Studio() {
               )}
             </div>
           </section>
-          <section className="mission-brief">
-            <div className="brief-icon">
-              <Lightbulb size={21} />
-            </div>
-            <div className="brief-copy">
-              <span className="eyebrow">THE SITUATION</span>
-              <h2>{mission.subtitle}</h2>
-              <p>{mission.brief}</p>
-              <div className="brief-actions">
-                <button
-                  className="button primary"
-                  disabled={busy}
-                  onClick={() => run()}
-                >
-                  {busy ? (
-                    <LoaderCircle className="spin" size={16} />
-                  ) : (
-                    <Play size={15} />
-                  )}{" "}
-                  {busy ? "Following the change…" : mission.cta}
-                  <ArrowRight size={15} />
-                </button>
-                <button
-                  className="text-link"
-                  onClick={() => {
-                    setSideTab("mentor");
-                    setHintCounts((p) => ({
-                      ...p,
-                      [mission.id]: Math.min(hints + 1, 3),
-                    }));
-                  }}
-                >
-                  <Lightbulb size={14} />
-                  Show a hint
-                </button>
-                {mission.lab && (
-                  <button className="text-link real-lab-link" onClick={runLab}>
-                    <FlaskConical size={14} />
-                    Real verification
-                  </button>
-                )}
-              </div>
-            </div>
-          </section>
-          <AnimatePresence>
-            {(busy || currentExecution) && (
-              <motion.section
-                className="execution-card"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-              >
-                <div className="execution-card-heading">
-                  <span>
-                    {busy ? (
-                      <LoaderCircle className="spin" size={16} />
-                    ) : (
-                      <CheckCheck size={16} />
-                    )}{" "}
-                    {busy
-                      ? "Following your change"
-                      : "Change applied to your simulation"}
-                  </span>
-                  <span className="small-tag">SIMULATED EXECUTION</span>
-                </div>
-                <div className="inline-steps">
-                  {steps.map((step, i) => (
-                    <span key={i}>
-                      <Check size={12} />
-                      {step}
-                    </span>
-                  ))}
-                </div>
-                {currentExecution && (
-                  <>
-                    <p>{currentExecution.summary}</p>
-                    <button
-                      className="text-link"
-                      onClick={() => setTab("evidence")}
-                    >
-                      Inspect the evidence
-                      <ArrowUpRight size={14} />
-                    </button>
-                  </>
-                )}
-              </motion.section>
-            )}
-          </AnimatePresence>
-          {currentExecution?.action === mission.action && (
-            <motion.section
-              className={`decision-card ${completed ? "complete" : ""}`}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
+
+          <div className="studio-explore-actions">
+            <button
+              className="button secondary small"
+              onClick={() => setHistory(true)}
+              disabled={busy || !ready}
             >
-              <div className="eyebrow">
-                {completed ? "DECISION VERIFIED" : "CHECK YOUR REASONING"}
-              </div>
-              <h3>{mission.decision.question}</h3>
-              <div className="decision-options">
-                {mission.decision.options.map((option, index) => (
-                  <button
-                    key={option}
-                    className={
-                      decision?.missionId === mission.id &&
-                      decision.index === index
-                        ? index === mission.decision.correct
-                          ? "correct"
-                          : "incorrect"
-                        : ""
-                    }
-                    onClick={() => chooseDecision(index)}
-                  >
-                    <span>
-                      {decision?.missionId === mission.id &&
-                      decision.index === index &&
-                      index === mission.decision.correct ? (
-                        <Check size={14} />
-                      ) : (
-                        String.fromCharCode(65 + index)
-                      )}
-                    </span>
-                    {option}
-                  </button>
-                ))}
-              </div>
-              {decision?.missionId === mission.id && (
-                <p className="decision-explanation">
-                  {decision.index === mission.decision.correct
-                    ? mission.decision.explanation
-                    : "Take another look at the evidence. " + mission.hints[1]}
-                </p>
-              )}
-              {completed && progress.activeMission < missions.length - 1 && (
-                <button
-                  className="button primary small"
-                  onClick={() => chooseMission(progress.activeMission + 1)}
-                >
-                  On to the next discovery
-                  <ArrowRight size={15} />
-                </button>
-              )}
-              {completed && progress.activeMission === missions.length - 1 && (
-                <Link href="/notebook" className="button primary small">
-                  Review your engineering story
-                  <ArrowRight size={15} />
-                </Link>
-              )}
-            </motion.section>
-          )}
-          <div className="studio-bottom-links">
-            <span>{sync}</span>
-            <div>
-              <button onClick={() => run("outage")} disabled={busy}>
-                <TriangleAlert size={13} />
-                Inject a training failure
+              <History size={14} />
+              Checkpoints ({progress.checkpoints.length})
+            </button>
+            <button
+              className="button secondary small"
+              onClick={() => run("outage")}
+              disabled={busy || !ready || !unlocked}
+            >
+              <TriangleAlert size={14} />
+              Inject a training failure
+            </button>
+            {progress.state.gitops && (
+              <button
+                className="button secondary small"
+                onClick={() => run("drift")}
+                disabled={busy || !ready || !unlocked}
+              >
+                Introduce drift
               </button>
-              {progress.state.gitops && (
-                <button onClick={() => run("drift")} disabled={busy}>
-                  Introduce drift
-                </button>
-              )}
-              <a href={mission.reference.url} target="_blank" rel="noreferrer">
-                Official reference
-                <ExternalLink size={12} />
-              </a>
-            </div>
+            )}
+            <a
+              className="text-link"
+              href={mission.reference.url}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Official reference
+              <ExternalLink size={13} />
+            </a>
           </div>
+          {runError && (
+            <p className="flow-error" role="alert">
+              {runError}
+            </p>
+          )}
+          <p className="explore-note">
+            Optional experiments change your simulated system. Restore a
+            checkpoint to undo an experiment; your earned XP stays with you.
+          </p>
         </div>
-        <aside className="mentor-panel">
+      </details>
+      <div className="guided-save-status">
+        <Check size={13} />
+        {sync}
+        <span>Simulation progress · no account needed</span>
+      </div>
+      <Dialog
+        open={guideOpen}
+        onClose={() => setGuideOpen(false)}
+        title={
+          sideTab === "mentor"
+            ? "Ada · Your engineering guide"
+            : "Explore this component"
+        }
+      >
+        <aside className="mentor-panel guided-mentor-panel">
           <div className="mentor-tabs">
             <button
               className={sideTab === "mentor" ? "selected" : ""}
@@ -926,11 +906,11 @@ export function Studio() {
             </div>
           )}
         </aside>
-      </div>
+      </Dialog>
       <Dialog
         open={missionMenu}
         onClose={() => setMissionMenu(false)}
-        title="Choose a discovery"
+        title="Your mission path"
         wide
       >
         <div className="mission-picker">
@@ -945,6 +925,13 @@ export function Studio() {
                   <button
                     key={m.id}
                     className={mission.id === m.id ? "selected" : ""}
+                    disabled={
+                      !ready ||
+                      !isMissionUnlocked(
+                        missions.indexOf(m),
+                        progress.completed,
+                      )
+                    }
                     onClick={() => chooseMission(missions.indexOf(m))}
                   >
                     <span
@@ -958,9 +945,23 @@ export function Studio() {
                     </span>
                     <span>
                       <strong>{m.title}</strong>
-                      <small>{m.subtitle}</small>
+                      <small>
+                        {isMissionUnlocked(
+                          missions.indexOf(m),
+                          progress.completed,
+                        )
+                          ? m.subtitle
+                          : `Complete mission ${(learning.nextMissionIndex ?? 0) + 1} to keep progressing`}
+                      </small>
                     </span>
-                    <ChevronRight size={16} />
+                    {isMissionUnlocked(
+                      missions.indexOf(m),
+                      progress.completed,
+                    ) ? (
+                      <ChevronRight size={16} />
+                    ) : (
+                      <LockKeyhole size={14} />
+                    )}
                   </button>
                 ))}
             </section>
@@ -993,6 +994,9 @@ export function Studio() {
                   onClick={() => {
                     update((p) => ({ ...p, state: checkpoint.state }));
                     setExecution(null);
+                    setMissionExecution(null);
+                    setStage("build");
+                    setRunError("");
                     setProbe(null);
                     setHistory(false);
                     notify(

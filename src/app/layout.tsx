@@ -5,6 +5,8 @@ import "@fontsource-variable/ibm-plex-sans";
 import "@fontsource/ibm-plex-mono/400.css";
 import "./globals.css";
 import "./workbench.css";
+import "./mission-flow.css";
+import "./journey-flow.css";
 import { AppProvider } from "@/components/app-provider";
 export const metadata: Metadata = {
   title: {
