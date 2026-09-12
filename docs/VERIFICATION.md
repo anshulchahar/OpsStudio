@@ -33,3 +33,9 @@ These service checks were performed during implementation, before the design rev
 The current release is an early-access application with 20 simulation missions and two real Node.js verification recipes. Real Kubernetes, container deployment, GitOps execution, and autonomous new-project authoring remain on the roadmap. Release refreshes produce dated recommendations and proposed future exercises; they do not publish new runnable projects.
 
 Guest learning works publicly. Public account creation and email recovery remain gated while an SMTP sender and production redirect settings are configured. Existing confirmed accounts work. Stripe remains in test mode; it does not collect real subscription revenue. Live commerce and public account availability must not be advertised as enabled yet.
+
+## Published design revision
+
+Production deployment `dpl_CoRNJYYcy7KqBryhTzNzFWEuL3MX` reached READY from source commit `79b9ed3` and was assigned to https://ops-studio.vercel.app. Post-deployment checks returned 200 for the overview, workbench, field guide, notebook, landing page, release radar, login, and health routes. Unauthenticated mentor, lab, and checkout requests returned 401 without calling a provider. The production error-log scan for the final ten-minute window returned zero entries.
+
+The deployed architectural model responded to component selection. The deployed mobile workbench used its narrow two-column layout. The temporary verification accounts and their cascading database records were removed; the Stripe test customer was removed after cancellation was confirmed. Recorded global provider usage was retained. Guest learning data was left intact.
