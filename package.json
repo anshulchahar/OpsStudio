@@ -1,0 +1,45 @@
+{
+  "name": "opsstudio",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "check": "npm run typecheck && npm run lint && npm run test"
+  },
+  "dependencies": {
+    "@fontsource-variable/ibm-plex-sans": "5.3.0",
+    "@fontsource/barlow-condensed": "5.3.0",
+    "@fontsource/ibm-plex-mono": "5.3.0",
+    "@supabase/ssr": "0.12.7",
+    "@supabase/supabase-js": "2.116.0",
+    "@vercel/sandbox": "3.3.0",
+    "@xyflow/react": "12.11.6",
+    "lucide-react": "1.45.0",
+    "motion": "13.2.0",
+    "next": "16.3.5",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "0.0.1",
+    "stripe": "22.6.2",
+    "zod": "4.6.2"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.2",
+    "@types/pg": "8.23.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.5",
+    "pg": "8.23.0",
+    "typescript": "5.9.3"
+  },
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  }
+}
