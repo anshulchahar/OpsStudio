@@ -1,0 +1,526 @@
+{
+  "queries": {
+    "columns": "select table_name,column_name,data_type,is_nullable,column_default from information_schema.columns where table_schema='public' order by 1,ordinal_position",
+    "constraints": "select c.relname table_name,pg_get_constraintdef(k.oid,true) definition from pg_constraint k join pg_class c on c.oid=k.conrelid join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' order by 1,2",
+    "indexes": "select tablename,indexname,indexdef from pg_indexes where schemaname='public' order by 1,2",
+    "policies": "select tablename,policyname,permissive,roles,cmd,qual,with_check from pg_policies where schemaname='public' order by 1,2",
+    "rls": "select relname,relrowsecurity,relforcerowsecurity from pg_class where relnamespace='public'::regnamespace and relkind='r' order by 1",
+    "functions": "select p.proname,pg_get_function_identity_arguments(p.oid) args,p.prosrc,p.prosecdef,p.proconfig from pg_proc p where p.pronamespace='public'::regnamespace order by 1,2"
+  },
+  "structural": {
+    "columns": [
+      {
+        "table_name": "ai_generations",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ai_generations",
+        "column_name": "user_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ai_generations",
+        "column_name": "cache_key",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ai_generations",
+        "column_name": "mission_id",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ai_generations",
+        "column_name": "model",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ai_generations",
+        "column_name": "prompt",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ai_generations",
+        "column_name": "answer",
+        "data_type": "jsonb",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "ai_generations",
+        "column_name": "status",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ai_generations",
+        "column_name": "input_tokens",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "0"
+      },
+      {
+        "table_name": "ai_generations",
+        "column_name": "output_tokens",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "0"
+      },
+      {
+        "table_name": "ai_generations",
+        "column_name": "estimated_usd",
+        "data_type": "numeric",
+        "is_nullable": "NO",
+        "column_default": "0"
+      },
+      {
+        "table_name": "ai_generations",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO",
+        "column_default": "now()"
+      },
+      {
+        "table_name": "lab_runs",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "lab_runs",
+        "column_name": "user_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "lab_runs",
+        "column_name": "recipe",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "lab_runs",
+        "column_name": "status",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "lab_runs",
+        "column_name": "result",
+        "data_type": "jsonb",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "lab_runs",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO",
+        "column_default": "now()"
+      },
+      {
+        "table_name": "learner_progress",
+        "column_name": "user_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "learner_progress",
+        "column_name": "payload",
+        "data_type": "jsonb",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "learner_progress",
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO",
+        "column_default": "now()"
+      },
+      {
+        "table_name": "release_catalog",
+        "column_name": "id",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "release_catalog",
+        "column_name": "version",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "release_catalog",
+        "column_name": "source_url",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "release_catalog",
+        "column_name": "checked_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO",
+        "column_default": "now()"
+      },
+      {
+        "table_name": "release_catalog",
+        "column_name": "recommendation",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "release_catalog",
+        "column_name": "candidate_title",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "stripe_events",
+        "column_name": "id",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "stripe_events",
+        "column_name": "processed_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO",
+        "column_default": "now()"
+      },
+      {
+        "table_name": "subscriptions",
+        "column_name": "user_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "subscriptions",
+        "column_name": "customer_id",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "subscriptions",
+        "column_name": "subscription_id",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "subscriptions",
+        "column_name": "status",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": "'none'::text"
+      },
+      {
+        "table_name": "subscriptions",
+        "column_name": "live_mode",
+        "data_type": "boolean",
+        "is_nullable": "NO",
+        "column_default": "false"
+      },
+      {
+        "table_name": "subscriptions",
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO",
+        "column_default": "now()"
+      },
+      {
+        "table_name": "usage_buckets",
+        "column_name": "scope",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "usage_buckets",
+        "column_name": "kind",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "usage_buckets",
+        "column_name": "day",
+        "data_type": "date",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "usage_buckets",
+        "column_name": "used",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "0"
+      }
+    ],
+    "constraints": [
+      {
+        "table_name": "ai_generations",
+        "definition": "CHECK (status = ANY (ARRAY['pending'::text, 'complete'::text, 'error'::text]))"
+      },
+      {
+        "table_name": "ai_generations",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+      },
+      {
+        "table_name": "ai_generations",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "table_name": "lab_runs",
+        "definition": "CHECK (status = ANY (ARRAY['pending'::text, 'complete'::text, 'error'::text]))"
+      },
+      {
+        "table_name": "lab_runs",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+      },
+      {
+        "table_name": "lab_runs",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "table_name": "learner_progress",
+        "definition": "CHECK (octet_length(payload::text) <= 131072)"
+      },
+      {
+        "table_name": "learner_progress",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+      },
+      {
+        "table_name": "learner_progress",
+        "definition": "PRIMARY KEY (user_id)"
+      },
+      {
+        "table_name": "release_catalog",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "table_name": "stripe_events",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "table_name": "subscriptions",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+      },
+      {
+        "table_name": "subscriptions",
+        "definition": "PRIMARY KEY (user_id)"
+      },
+      {
+        "table_name": "subscriptions",
+        "definition": "UNIQUE (customer_id)"
+      },
+      {
+        "table_name": "subscriptions",
+        "definition": "UNIQUE (subscription_id)"
+      },
+      {
+        "table_name": "usage_buckets",
+        "definition": "CHECK (kind = ANY (ARRAY['mentor'::text, 'lab'::text]))"
+      },
+      {
+        "table_name": "usage_buckets",
+        "definition": "CHECK (used >= 0)"
+      },
+      {
+        "table_name": "usage_buckets",
+        "definition": "PRIMARY KEY (scope, kind, day)"
+      }
+    ],
+    "indexes": [
+      {
+        "tablename": "ai_generations",
+        "indexname": "ai_generations_owner_cache",
+        "indexdef": "CREATE INDEX ai_generations_owner_cache ON public.ai_generations USING btree (user_id, cache_key, created_at DESC)"
+      },
+      {
+        "tablename": "ai_generations",
+        "indexname": "ai_generations_pkey",
+        "indexdef": "CREATE UNIQUE INDEX ai_generations_pkey ON public.ai_generations USING btree (id)"
+      },
+      {
+        "tablename": "lab_runs",
+        "indexname": "lab_runs_pkey",
+        "indexdef": "CREATE UNIQUE INDEX lab_runs_pkey ON public.lab_runs USING btree (id)"
+      },
+      {
+        "tablename": "learner_progress",
+        "indexname": "learner_progress_pkey",
+        "indexdef": "CREATE UNIQUE INDEX learner_progress_pkey ON public.learner_progress USING btree (user_id)"
+      },
+      {
+        "tablename": "release_catalog",
+        "indexname": "release_catalog_pkey",
+        "indexdef": "CREATE UNIQUE INDEX release_catalog_pkey ON public.release_catalog USING btree (id)"
+      },
+      {
+        "tablename": "stripe_events",
+        "indexname": "stripe_events_pkey",
+        "indexdef": "CREATE UNIQUE INDEX stripe_events_pkey ON public.stripe_events USING btree (id)"
+      },
+      {
+        "tablename": "subscriptions",
+        "indexname": "subscriptions_customer_id_key",
+        "indexdef": "CREATE UNIQUE INDEX subscriptions_customer_id_key ON public.subscriptions USING btree (customer_id)"
+      },
+      {
+        "tablename": "subscriptions",
+        "indexname": "subscriptions_pkey",
+        "indexdef": "CREATE UNIQUE INDEX subscriptions_pkey ON public.subscriptions USING btree (user_id)"
+      },
+      {
+        "tablename": "subscriptions",
+        "indexname": "subscriptions_subscription_id_key",
+        "indexdef": "CREATE UNIQUE INDEX subscriptions_subscription_id_key ON public.subscriptions USING btree (subscription_id)"
+      },
+      {
+        "tablename": "usage_buckets",
+        "indexname": "usage_buckets_pkey",
+        "indexdef": "CREATE UNIQUE INDEX usage_buckets_pkey ON public.usage_buckets USING btree (scope, kind, day)"
+      }
+    ],
+    "policies": [
+      {
+        "tablename": "ai_generations",
+        "policyname": "Delete own answers",
+        "permissive": "PERMISSIVE",
+        "roles": "{authenticated}",
+        "cmd": "DELETE",
+        "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+        "with_check": null
+      },
+      {
+        "tablename": "ai_generations",
+        "policyname": "Own answers",
+        "permissive": "PERMISSIVE",
+        "roles": "{authenticated}",
+        "cmd": "SELECT",
+        "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+        "with_check": null
+      },
+      {
+        "tablename": "lab_runs",
+        "policyname": "Delete own lab runs",
+        "permissive": "PERMISSIVE",
+        "roles": "{authenticated}",
+        "cmd": "DELETE",
+        "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+        "with_check": null
+      },
+      {
+        "tablename": "lab_runs",
+        "policyname": "Own lab runs",
+        "permissive": "PERMISSIVE",
+        "roles": "{authenticated}",
+        "cmd": "SELECT",
+        "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+        "with_check": null
+      },
+      {
+        "tablename": "learner_progress",
+        "policyname": "Own progress",
+        "permissive": "PERMISSIVE",
+        "roles": "{authenticated}",
+        "cmd": "ALL",
+        "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+        "with_check": "(( SELECT auth.uid() AS uid) = user_id)"
+      },
+      {
+        "tablename": "subscriptions",
+        "policyname": "Own subscription",
+        "permissive": "PERMISSIVE",
+        "roles": "{authenticated}",
+        "cmd": "SELECT",
+        "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+        "with_check": null
+      }
+    ],
+    "rls": [
+      {
+        "relname": "ai_generations",
+        "relrowsecurity": true,
+        "relforcerowsecurity": false
+      },
+      {
+        "relname": "lab_runs",
+        "relrowsecurity": true,
+        "relforcerowsecurity": false
+      },
+      {
+        "relname": "learner_progress",
+        "relrowsecurity": true,
+        "relforcerowsecurity": false
+      },
+      {
+        "relname": "release_catalog",
+        "relrowsecurity": true,
+        "relforcerowsecurity": false
+      },
+      {
+        "relname": "stripe_events",
+        "relrowsecurity": true,
+        "relforcerowsecurity": false
+      },
+      {
+        "relname": "subscriptions",
+        "relrowsecurity": true,
+        "relforcerowsecurity": false
+      },
+      {
+        "relname": "usage_buckets",
+        "relrowsecurity": true,
+        "relforcerowsecurity": false
+      }
+    ],
+    "functions": [
+      {
+        "proname": "reserve_usage",
+        "args": "p_user uuid, p_kind text, p_user_limit integer, p_global_limit integer",
+        "prosrc": "\ndeclare\n  today date := (now() at time zone 'utc')::date;\n  global_used integer;\n  user_used integer;\nbegin\n  if p_user is null or p_kind not in ('mentor','lab') or p_user_limit < 1 or p_global_limit < 1 then\n    return jsonb_build_object('allowed', false, 'remaining', 0);\n  end if;\n  insert into public.usage_buckets(scope, kind, day) values ('global',p_kind,today) on conflict do nothing;\n  select used into global_used from public.usage_buckets where scope='global' and kind=p_kind and day=today for update;\n  insert into public.usage_buckets(scope, kind, day) values (p_user::text,p_kind,today) on conflict do nothing;\n  select used into user_used from public.usage_buckets where scope=p_user::text and kind=p_kind and day=today for update;\n  if global_used >= p_global_limit or user_used >= p_user_limit then\n    return jsonb_build_object('allowed', false, 'remaining', greatest(0, least(p_user_limit-user_used,p_global_limit-global_used)));\n  end if;\n  update public.usage_buckets set used=used+1 where kind=p_kind and day=today and scope in ('global',p_user::text);\n  return jsonb_build_object('allowed', true, 'remaining', greatest(0, least(p_user_limit-user_used-1,p_global_limit-global_used-1)));\nend;\n",
+        "prosecdef": false,
+        "proconfig": [
+          "search_path=\"\""
+        ]
+      },
+      {
+        "proname": "save_progress",
+        "args": "p_payload jsonb",
+        "prosrc": "\n insert into public.learner_progress(user_id,payload,updated_at)\n values((select auth.uid()),p_payload,now())\n on conflict(user_id) do update set payload=excluded.payload,updated_at=now()\n where coalesce(excluded.payload->>'updatedAt','') >= coalesce(learner_progress.payload->>'updatedAt','');\n",
+        "prosecdef": false,
+        "proconfig": [
+          "search_path=\"\""
+        ]
+      }
+    ]
+  }
+}

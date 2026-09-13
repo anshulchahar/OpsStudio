@@ -48,6 +48,7 @@ export async function readBody<T>(
   return result.data;
 }
 export function errorResponse(message: string, status = 400) {
+  if (status >= 500) console.error(JSON.stringify({ service: "OpsStudio", code: "API_UNAVAILABLE", status }));
   return Response.json(
     { error: message },
     { status, headers: { "Cache-Control": "no-store" } },

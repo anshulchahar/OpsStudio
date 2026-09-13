@@ -1,59 +1,38 @@
 import { Brand } from "@/components/brand";
+import { operatorDetails, retentionDays } from "@/lib/operator";
 import Link from "next/link";
-export const metadata = { title: "Your data" };
+
+export const metadata = { title: "Privacy and your data" };
 export default function Privacy() {
-  return (
-    <main className="standalone-page">
-      <Brand />
-      <article className="privacy-copy">
-        <span className="eyebrow">EARLY ACCESS DATA INFORMATION</span>
-        <h1>Your workspace should feel safe to explore.</h1>
-        <p>
-          OpsStudio is an educational beta. Northstar is fictional, and all
-          project records are synthetic. Do not enter employer secrets, real
-          customer records, or sensitive personal information.
-        </p>
-        <h2>What is stored</h2>
-        <p>
-          Guest progress and notebook entries are stored in this browser. With
-          an account, Supabase stores your email, authentication records,
-          learning progress, and notebook. Gemini questions and answers, token
-          counts, and lab results are stored for your account so they can be
-          retrieved and usage limits enforced.
-        </p>
-        <h2>When AI is used</h2>
-        <p>
-          Sending a mentor question sends the question, selected mission
-          context, and simulated system state to Google’s Gemini API. Guided
-          hints and ordinary simulation actions do not call Gemini. Your
-          notebook is not sent to Gemini. Google’s API processing terms apply to
-          those requests.
-        </p>
-        <h2>Service providers</h2>
-        <p>
-          Vercel hosts the application and isolated verification environments.
-          Supabase provides authentication and persistence. Stripe provides
-          checkout and subscription management; OpsStudio does not store payment
-          card details. The launch checkout uses test mode.
-        </p>
-        <h2>Your controls</h2>
-        <p>
-          You can export your notebook, clear your learning progress in
-          Settings, and sign out. Clearing progress does not delete your
-          account, saved AI answers, or service-provider records. Full account
-          deletion and a published operator contact are required before the paid
-          public launch; do not use this beta for sensitive material.
-        </p>
-        <h2>About these exercises</h2>
-        <p>
-          The studio labels simulated outcomes separately from real lab checks.
-          Gemini can make mistakes. A completed mission is a learning record,
-          not a certification or proof of production experience.
-        </p>
-        <Link href="/" className="button secondary">
-          Return to your workspace
-        </Link>
-      </article>
-    </main>
-  );
+  const operator = operatorDetails();
+  const retention = retentionDays();
+  return <main className="standalone-page"><Brand /><article className="privacy-copy">
+    <span className="eyebrow">PRIVACY / LAST UPDATED 13 SEPTEMBER 2026</span>
+    <h1>Your work. Your account. Your choices.</h1>
+    <p>OpsStudio offers fictional engineering practice environments. The supplied company data is synthetic. Your own email, notes, questions, and account activity are personal information; keep employer secrets and real customer records out of this service.</p>
+    <h2>Who operates OpsStudio</h2>
+    {operator.configured ? <p>{operator.name} operates this service from {operator.country}. For privacy questions, access requests, or deletion assistance, contact <a href={`mailto:${operator.email}`}>{operator.email}</a>. Postal and operator information is available on the <Link href="/operator">operator page</Link>.</p> : <p>Operator identity and contact details have not yet been published. Public registration and live checkout remain unavailable until those details are configured. Existing users can use the export and account-deletion controls in <Link href="/settings">Settings</Link>. See <Link href="/operator">operator publication status</Link>.</p>}
+    <h2>What is stored and why</h2>
+    <p>Guest work is kept in this browser. Signed-in work is stored locally and synced to Supabase for continuity across devices. That includes your notes, current project decisions, and change history. Supabase also stores your email and authentication records to secure your account. Guest work is not silently assigned to another account.</p>
+    <p>We store submitted Gemini questions, completed answers, token counts, and costs so you can retrieve the answer and we can enforce spending limits. Real lab requests and results are retained as verification evidence. Usage counters prevent excessive metered requests. Subscription references and limited event records support billing and reconciliation. Operational events record categories and request identifiers for reliability; application logs are designed to exclude passwords, credentials, notes, and full prompts.</p>
+    <p>Hosting and authentication providers also receive connection information such as your IP address and browser request metadata to deliver the service and investigate abuse. Those provider records follow their published policies and are separate from your project notebook.</p>
+    <h2>Performance monitoring</h2>
+    <p>Production pages use Vercel Speed Insights with 10% sampling to understand loading speed, responsiveness, and layout stability. Reports include technical Web Vitals, page routes, and browser, device, network, and country information for aggregate performance analysis. We remove URL query strings and fragments before sending events and exclude saved-answer pages, authentication callback and recovery pages, and Settings. We do not add your notes, AI questions, or account identity to these reports. Vercel describes these measurements as anonymous and not linked to individual visitors or browsing sessions. See <a href="https://vercel.com/docs/speed-insights/privacy-policy" target="_blank" rel="noreferrer">Vercel&apos;s Speed Insights privacy details</a>.</p>
+    <h2>When information goes to AI</h2>
+    <p>Only submitting a question to Ada sends a Gemini request. It includes your question, the selected fictional company and request, the proposed approach when selected, and the modelled project state. Your notebook, email, password, and billing details are not included in the model context. Ordinary practice changes, animations, and authored hints make no AI requests. Google processes the submitted context under its applicable Gemini API terms; do not include sensitive information in a question.</p>
+    <h2>Service providers</h2>
+    <p>Vercel hosts the application and disposable real-lab environments. Supabase provides authentication and persistence. Google provides the Gemini API. Stripe handles checkout and billing; OpsStudio does not receive payment-card numbers. GitHub Actions stores encrypted database-backup artifacts for recovery, with the decryption key held separately. These providers may process data in locations outside your country under their service arrangements. The application region does not guarantee that every provider processes data exclusively in that region.</p>
+    <p><a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noreferrer">Vercel privacy information</a> · <a href="https://supabase.com/privacy" target="_blank" rel="noreferrer">Supabase privacy information</a> · <a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noreferrer">Gemini API terms</a> · <a href="https://stripe.com/privacy" target="_blank" rel="noreferrer">Stripe privacy information</a> · <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noreferrer">GitHub privacy information</a></p>
+    <h2>Retention</h2>
+    <p>Saved AI generations are eligible for deletion after {retention.ai} days and lab results after {retention.labs} days. Usage counters and processed billing-event markers are eligible after {retention.usage} and {retention.billingEvents} days respectively; operational event records after {retention.operations} days. A scheduled cleanup removes eligible records, so deletion may occur after the threshold rather than at that exact instant. Account progress and notes remain until you reset them or delete your account.</p>
+    <p>Signing out with device removal clears this account&apos;s local work from this browser, while keeping its cloud record. Other devices can retain their own local copies until you remove them. Provider backups and financial records can remain for their applicable retention periods. Account deletion removes the active application account and its owned records; it does not promise immediate erasure of every provider backup or legally retained financial record.</p>
+    <p>OpsStudio&apos;s encrypted database-backup artifacts are retained for up to 14 days. Deleted data can remain in those restricted recovery copies until they expire. For 30 days after deletion, a separate erasure ledger retains only a hash of the account identifier and the deletion time, so restored records can be checked against prior deletions. Restored data must stay isolated until deletion reconciliation is complete, and restored sessions must be revoked before public access is restored.</p>
+    <h2>Your controls</h2>
+    <p>In <Link href="/settings">Settings</Link>, you can download your stored account data, reset your project work, sign out and remove the account&apos;s device copy, or permanently delete your account after confirming your password. Deletion checks billing first: any remaining subscriptions need your explicit permission to cancel, and uncertain billing operations must be resolved before the account is removed. Deletion revokes sessions and removes application records tied to the account, including saved answers, lab results, and personal usage counters. A progress reset alone keeps the account and saved answers.</p>
+    <p>You can request access, correction, deletion, restriction, or other applicable privacy rights through the published operator contact. Your available rights and complaint channels depend on the law that applies to you. We do not claim that a beta label removes these responsibilities.</p>
+    <h2>Browser storage</h2>
+    <p>Authentication cookies keep your session working. Browser storage keeps your practice record available and coordinates changes between tabs. These features are used to operate the workspace. No advertising tracker is required to use OpsStudio.</p>
+    <p><Link href="/terms">Service terms</Link> · <Link href="/operator">Operator information</Link></p>
+    <Link href="/" className="button secondary">Return to your workspace</Link>
+  </article></main>;
 }

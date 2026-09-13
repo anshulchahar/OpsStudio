@@ -1,19 +1,13 @@
 import { createHash, randomUUID } from "node:crypto";
-import { z } from "zod";
 import { adminSupabase, currentUser } from "@/lib/supabase/server";
 import { readBody, errorResponse, integerEnv } from "@/lib/http";
-import { actionIds } from "@/lib/engine";
+import { geminiUsage, parseGeminiAnswer } from "@/lib/gemini-result";
 import {
   mentorRequestSchema,
   resolveMentorContext,
 } from "@/lib/mentor-context";
 
 export const maxDuration = 30;
-const answerSchema = z.object({
-  answer: z.string().min(1).max(5000),
-  hint: z.string().max(800),
-  action: z.enum(actionIds).nullable(),
-});
 
 export async function POST(request: Request) {
   const user = await currentUser();
@@ -31,8 +25,10 @@ export async function POST(request: Request) {
   let body;
   let context;
   try {
-    body = await readBody(request, mentorRequestSchema, 40000);
+    body = await readBody(request, mentorRequestSchema, 131072);
     context = resolveMentorContext(body);
+    if (Buffer.byteLength(JSON.stringify(context)) > 32768)
+      throw new Error("Mentor context exceeds the bounded generation budget.");
   } catch {
     return errorResponse(
       "Choose an available project request or mission and ask a question of up to 1,200 characters.",
@@ -43,49 +39,29 @@ export async function POST(request: Request) {
     .update(JSON.stringify({ v: 2, model, context }))
     .digest("hex");
   const db = adminSupabase();
-  const { data: cached } = await db
-    .from("ai_generations")
-    .select("id,answer")
-    .eq("user_id", user.id)
-    .eq("cache_key", cacheKey)
-    .eq("status", "complete")
-    .gte("created_at", new Date(Date.now() - 86400000).toISOString())
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (cached)
-    return Response.json({ ...cached.answer, id: cached.id, cached: true });
-  const { data: quota, error: quotaError } = await db.rpc("reserve_usage", {
+  const proposedId = randomUUID();
+  const { data: claim, error: claimError } = await db.rpc("claim_mentor_generation", {
     p_user: user.id,
-    p_kind: "mentor",
+    p_cache: cacheKey,
+    p_id: proposedId,
+    p_mission: context.recordId,
+    p_model: model,
+    p_prompt: body.question,
     p_user_limit: integerEnv("AI_USER_DAILY_LIMIT", 8),
     p_global_limit: integerEnv("AI_GLOBAL_DAILY_LIMIT", 100),
   });
-  if (quotaError)
-    return errorResponse(
-      "The usage check is unavailable. No Gemini request was sent.",
-      503,
-    );
-  if (!quota?.allowed)
-    return errorResponse(
-      "Today's mentor allowance has been reached. It resets at midnight UTC; guided hints remain available.",
-      429,
-    );
-  const id = randomUUID();
-  const { error: saveError } = await db.from("ai_generations").insert({
-    id,
-    user_id: user.id,
-    cache_key: cacheKey,
-    mission_id: context.recordId,
-    model,
-    prompt: body.question,
-    status: "pending",
-  });
-  if (saveError)
-    return errorResponse(
-      "The answer could not be reserved safely. No Gemini request was sent.",
-      503,
-    );
+  if (claimError || !claim)
+    return errorResponse("The answer could not be reserved safely. No Gemini request was sent.", 503);
+  if (claim.status === "cached")
+    return Response.json({ ...claim.answer, id: claim.id, cached: true }, { headers: { "Cache-Control": "no-store" } });
+  if (claim.status === "pending")
+    return Response.json({ error: "This question is already being prepared. Check the saved answer shortly; no second Gemini request was sent.", id: claim.id, pending: true }, { status: 409, headers: { "Cache-Control": "no-store", "Retry-After": "5" } });
+  if (claim.status === "quota")
+    return errorResponse("Today's mentor allowance has been reached. It resets at midnight UTC; guided hints remain available.", 429);
+  if (claim.status !== "claimed" || claim.id !== proposedId)
+    return errorResponse("The answer reservation could not be verified. No Gemini request was sent.", 503);
+  const id = claim.id;
+  let usage = geminiUsage(null, model);
   try {
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
@@ -120,10 +96,7 @@ export async function POST(request: Request) {
               properties: {
                 answer: { type: "string" },
                 hint: { type: "string" },
-                action:
-                  context.mode === "project"
-                    ? { type: "null" }
-                    : { type: ["string", "null"] },
+                action: { type: ["string", "null"] },
               },
               required: ["answer", "hint", "action"],
             },
@@ -134,42 +107,19 @@ export async function POST(request: Request) {
         }),
       },
     );
-    if (!response.ok) throw new Error(`provider_http_${response.status}`);
     const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts
-      ?.filter(
-        (p: { text?: string; thought?: boolean }) => p.text && !p.thought,
-      )
-      .map((p: { text: string }) => p.text)
-      .join("");
-    const answer = answerSchema.parse(JSON.parse(text || "{}"));
-    if (answer.action !== context.allowedAction) answer.action = null;
-    const input = data.usageMetadata?.promptTokenCount || 0;
-    const output =
-      (data.usageMetadata?.candidatesTokenCount || 0) +
-      (data.usageMetadata?.thoughtsTokenCount || 0);
-    const { error } = await db
+    // Record provider-reported usage before parsing generated content: malformed
+    // JSON, blocked candidates and schema failures can still consume tokens.
+    usage = geminiUsage(data, model);
+    if (!response.ok) throw new Error(`provider_http_${response.status}`);
+    const answer = parseGeminiAnswer(data, context.allowedAction);
+    const { data: saved, error } = await db
       .from("ai_generations")
-      .update({
-        answer,
-        status: "complete",
-        input_tokens: input,
-        output_tokens: output,
-        estimated_usd:
-          model === "gemini-3.1-flash-lite"
-            ? (input * 0.25 + output * 1.5) / 1000000
-            : model === "gemini-2.5-flash-lite"
-              ? (input * 0.1 + output * 0.4) / 1000000
-              : 0,
-      })
-      .eq("id", id);
-    if (error) throw new Error("Persistence unavailable");
-    return Response.json({
-      ...answer,
-      id,
-      cached: false,
-      remaining: quota.remaining,
-    });
+      .update({ answer, status: "complete", ...usage, finished_at: new Date().toISOString() })
+      .eq("id", id).eq("user_id", user.id).eq("status", "pending")
+      .gt("lease_expires_at", new Date().toISOString()).select("id").maybeSingle();
+    if (error || !saved) throw new Error("Persistence unavailable");
+    return Response.json({ ...answer, id, cached: false, remaining: claim.remaining }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     const category =
       error instanceof Error && /^provider_http_[0-9]{3}$/.test(error.message)
@@ -178,7 +128,10 @@ export async function POST(request: Request) {
           ? error.name
           : "UnknownError";
     console.error("mentor_generation_failed", { id, category });
-    await db.from("ai_generations").update({ status: "error" }).eq("id", id);
+    const { error: saveError } = await db.from("ai_generations")
+      .update({ status: "error", ...usage, error_category: category, finished_at: new Date().toISOString() })
+      .eq("id", id).eq("user_id", user.id).neq("status", "complete");
+    if (saveError) console.error("mentor_usage_persistence_failed", { id, category, ...usage });
     return errorResponse(
       "Gemini could not finish this answer. No automatic retry was made. Use a guided hint or try again later.",
       502,

@@ -564,6 +564,7 @@ export function securityScore(state: SystemState) {
 }
 
 export const savedProgressSchema = z.object({
+  resetId: z.string().min(1).max(64).default("initial"),
   updatedAt: z.string().datetime().default("1970-01-01T00:00:00.000Z"),
   version: z.literal(1),
   state: systemSchema,
@@ -584,6 +585,7 @@ export const savedProgressSchema = z.object({
 });
 export type SavedProgress = z.infer<typeof savedProgressSchema>;
 export const emptyProgress: SavedProgress = {
+  resetId: "initial",
   updatedAt: "1970-01-01T00:00:00.000Z",
   version: 1,
   state: initialSystem,

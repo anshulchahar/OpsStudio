@@ -1,0 +1,7 @@
+.checkbox { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; line-height: 1.55; margin: 14px 0 18px; color: var(--muted); }
+.checkbox input { flex: 0 0 auto; width: 16px; height: 16px; margin-top: 3px; accent-color: var(--blue); }
+.form { display: grid; gap: 9px; }
+.form > label { font-size: 13px; font-weight: 600; }
+.form > input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; }
+.form > input:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.form .checkbox { font-weight: 400; margin-bottom: 0; }

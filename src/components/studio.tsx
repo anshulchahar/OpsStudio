@@ -120,6 +120,7 @@ function MissionStudio() {
   const [asking, setAsking] = useState(false);
   const [answer, setAnswer] = useState<Answer | null>(null);
   const [mentorError, setMentorError] = useState("");
+  const [pendingAnswerId, setPendingAnswerId] = useState<string | null>(null);
   const [decision, setDecision] = useState<{
     missionId: string;
     index: number;
@@ -257,6 +258,7 @@ function MissionStudio() {
     }
     setAsking(true);
     setMentorError("");
+    setPendingAnswerId(null);
     try {
       const response = await fetch("/api/mentor", {
         method: "POST",
@@ -268,6 +270,7 @@ function MissionStudio() {
         }),
       });
       const data = await response.json();
+      if (data.pending && typeof data.id === "string" && /^[0-9a-f-]{36}$/i.test(data.id)) setPendingAnswerId(data.id);
       if (!response.ok)
         throw new Error(data.error || "The mentor is unavailable.");
       setAnswer({ ...data, missionId: mission.id });
@@ -780,6 +783,7 @@ function MissionStudio() {
                 {mentorError && (
                   <div className="inline-error" role="alert">
                     {mentorError}
+              {pendingAnswerId && <Link href={`/answers/${pendingAnswerId}`} target="_blank" rel="noreferrer">Check saved answer</Link>}
                     {!user && (
                       <Link href="/login">
                         Sign in

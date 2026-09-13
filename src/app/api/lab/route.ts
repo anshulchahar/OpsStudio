@@ -27,30 +27,19 @@ export async function POST(request: Request) {
   }
   const db = adminSupabase();
   const id = randomUUID();
-  const { data: quota, error } = await db.rpc("reserve_usage", {
+  const { data: quota, error } = await db.rpc("claim_lab_run", {
     p_user: user.id,
-    p_kind: "lab",
+    p_id: id,
+    p_recipe: body.recipe,
     p_user_limit: integerEnv("LAB_USER_DAILY_LIMIT", 2),
     p_global_limit: integerEnv("LAB_GLOBAL_DAILY_LIMIT", 10),
   });
-  if (error)
-    return errorResponse(
-      "The usage check is unavailable. No lab was started.",
-      503,
-    );
-  if (!quota?.allowed)
-    return errorResponse(
-      "Today's real-lab allowance is used. It resets at midnight UTC.",
-      429,
-    );
-  const { error: saveError } = await db
-    .from("lab_runs")
-    .insert({ id, user_id: user.id, recipe: body.recipe, status: "pending" });
-  if (saveError)
-    return errorResponse(
-      "The lab result could not be reserved. No lab was started.",
-      503,
-    );
+  if (error || !quota)
+    return errorResponse("The usage check is unavailable. No lab was started.", 503);
+  if (quota.status === "quota")
+    return errorResponse("Today's real-lab allowance is used. It resets at midnight UTC.", 429);
+  if (quota.status !== "claimed" || quota.id !== id)
+    return errorResponse("The lab could not be reserved safely. No lab was started.", 503);
   let sandbox: Sandbox | undefined;
   try {
     sandbox = await Sandbox.create({
@@ -71,28 +60,30 @@ export async function POST(request: Request) {
     const stdout = (await command.stdout()).trim();
     if (command.exitCode !== 0) throw new Error("Verification failed");
     const result = JSON.parse(stdout);
-    const { error: persistError } = await db
+    const { data: persisted, error: persistError } = await db
       .from("lab_runs")
-      .update({ status: "complete", result })
-      .eq("id", id);
-    if (persistError) throw new Error("Could not save verification evidence");
+      .update({ status: "complete", result, finished_at: new Date().toISOString() })
+      .eq("id", id).eq("status", "pending").gt("lease_expires_at", new Date().toISOString()).select("id").maybeSingle();
+    if (persistError || !persisted) throw new Error("Could not save verification evidence");
     return Response.json({
       id,
       ...result,
       mode: "real-execution",
       remaining: quota.remaining,
-    });
+    }, { headers: { "Cache-Control": "no-store" } });
   } catch {
     await db
       .from("lab_runs")
       .update({
         status: "error",
+        finished_at: new Date().toISOString(),
+        error_category: "execution_failed",
         result: {
           message:
             "The isolated execution could not finish. No successful verification is claimed.",
         },
       })
-      .eq("id", id);
+      .eq("id", id).neq("status", "complete");
     return errorResponse(
       "The isolated lab could not finish. No successful result is claimed. Your simulation is unchanged.",
       502,

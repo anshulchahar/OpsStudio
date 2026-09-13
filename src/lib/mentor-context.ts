@@ -72,7 +72,9 @@ export function resolveMentorContext(input: unknown) {
       }
     }
 
-    const derived = deriveProject(project, body.run);
+    // Personal receipts may contain older, user-controlled simulation snapshots.
+    // The mentor recomputes its advice from current server-authored facts only.
+    const derived = deriveProject(project, { ...body.run, applied: {}, initialMetrics: undefined });
     const available = new Set(derived.availableWork.map((item) => item.id));
     const decisions = project.work.flatMap((item) => {
       if (!available.has(item.id)) return [];
@@ -146,6 +148,7 @@ export function resolveMentorContext(input: unknown) {
           artifact: option.artifact,
         })),
         simulation: {
+          basis: "Current server catalog recomputation; saved historical receipts may use earlier assumptions.",
           metrics: derived.metrics,
           shippedIds: derived.shippedIds,
           decisions,

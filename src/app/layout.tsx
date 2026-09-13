@@ -10,6 +10,7 @@ import "./journey-flow.css";
 import "./portfolio.css";
 import "./record-portfolio.css";
 import { AppProvider } from "@/components/app-provider";
+import { PerformanceInsights } from "@/components/performance-insights";
 export const metadata: Metadata = {
   title: {
     default: "OpsStudio — Your engineering workspace",
@@ -29,6 +30,7 @@ export default function RootLayout({
     <html lang="en" data-scroll-behavior="smooth">
       <body>
         <AppProvider>{children}</AppProvider>
+        <PerformanceInsights enabled={process.env.VERCEL_ENV === "production"} />
       </body>
     </html>
   );

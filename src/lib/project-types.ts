@@ -5,6 +5,10 @@ export type Metrics = {
   monthlyCost: number;
 };
 
+// Bump when changing the meaning of authored work. Applied receipts retain their
+// own snapshot and therefore do not inherit subsequent editorial revisions.
+export const PROJECT_CATALOG_VERSION = "2026-09-13.1";
+
 export type ProjectComponent = {
   id: string;
   label: string;

@@ -31,6 +31,7 @@ export function AuthForm({
   }, []);
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (busy || (mode === "signup" && !signupEnabled)) return;
     setBusy(true);
     setError("");
     setMessage("");
@@ -151,12 +152,12 @@ export function AuthForm({
               </button>
             </div>
           )}
-          {mode !== "signin" && !signupEnabled ? (
+          {mode === "signup" && !signupEnabled ? (
             <div className="signup-pending">
               <h3>Public accounts are opening soon.</h3>
               <p>
-                Email delivery is being configured for this beta. You can
-                explore every guided mission and save progress on this device
+                Public registration is not enabled for this beta. You can
+                explore every project and save progress on this device
                 right now.
               </p>
               <Link href="/studio" className="button primary">

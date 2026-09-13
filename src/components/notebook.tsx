@@ -36,11 +36,7 @@ export function Notebook() {
     .map((project) => {
       const run = progress.portfolio.runs[project.id] ?? emptyProjectRun();
       const derived = deriveProject(project, run);
-      const practiced = project.work.filter(
-        (work) =>
-          derived.availableWork.some((available) => available.id === work.id) &&
-          run.selections[work.id],
-      );
+      const practiced = Object.values(derived.accepted).map((selection) => selection.work);
       return {
         project,
         run,
@@ -205,10 +201,11 @@ export function Notebook() {
                       .slice(-5)
                       .reverse()
                       .map((receipt) => {
-                        const work = project.work.find(
+                        const currentWork = project.work.find(
                           (item) => item.id === receipt.workId,
                         );
-                        const option = work?.options.find(
+                        const work = receipt.snapshot?.work ?? currentWork;
+                        const option = receipt.snapshot?.option ?? currentWork?.options.find(
                           (item) => item.id === receipt.optionId,
                         );
                         if (!work || !option) return null;

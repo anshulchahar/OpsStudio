@@ -170,17 +170,18 @@ function ProjectDesk({ project }: { project: PracticeProject }) {
             .reverse()
             .slice(0, 12)
             .map((receipt) => {
-              const item = project.work.find(
+              const currentItem = project.work.find(
                   (job) => job.id === receipt.workId,
                 ),
-                option = item?.options.find(
+                item = receipt.snapshot?.work ?? currentItem,
+                option = receipt.snapshot?.option ?? currentItem?.options.find(
                   (choice) => choice.id === receipt.optionId,
                 );
               return item && option ? (
                 <button
                   key={receipt.id}
                   className="project-history-row"
-                  disabled={busy}
+                  disabled={busy || !currentItem}
                   onClick={() => selectWork(item.id)}
                 >
                   <span className={`request-kind ${item.kind}`}>
@@ -271,9 +272,7 @@ function WorkPanel({
   const run = progress.portfolio.runs[project.id] || emptyProjectRun();
   const system = deriveProject(project, run);
   const available = system.availableWork.some((item) => item.id === work.id);
-  const currentOption = work.options.find(
-    (option) => option.id === run.selections[work.id],
-  );
+  const currentOption = system.accepted[work.id]?.option;
   const [phase, setPhase] = useState<"request" | "plan" | "receipt">(
     currentOption && available ? "receipt" : "request",
   );
@@ -296,6 +295,7 @@ function WorkPanel({
     remaining?: number;
   } | null>(null);
   const [mentorError, setMentorError] = useState("");
+  const [pendingAnswerId, setPendingAnswerId] = useState<string | null>(null);
   const token = useRef(0);
   const panel = useRef<HTMLElement>(null);
   const option = work.options.find((item) => item.id === chosen) || null;
@@ -385,6 +385,7 @@ function WorkPanel({
     }
     setAsking(true);
     setMentorError("");
+    setPendingAnswerId(null);
     try {
       const response = await fetch("/api/mentor", {
         method: "POST",
@@ -392,12 +393,13 @@ function WorkPanel({
         body: JSON.stringify({
           projectId: project.id,
           workId: work.id,
-          run,
+          run: { ...run, history: [] },
           question,
           proposedOptionId: chosen || undefined,
         }),
       });
       const data = await response.json();
+      if (data.pending && typeof data.id === "string" && /^[0-9a-f-]{36}$/i.test(data.id)) setPendingAnswerId(data.id);
       if (!response.ok) throw new Error(data.error || "Ada could not answer.");
       setAnswer(data);
       setQuestion("");
@@ -596,6 +598,7 @@ function WorkPanel({
                     : "The rehearsal caught a problem."}
                 </h2>
                 <p className="work-receipt-choice">{resultOption.title}</p>
+                <small>{run.applied[work.id] ? `Saved evidence · catalog ${run.applied[work.id].catalogVersion}` : "Earlier decision · evidence shown from the current catalog"}</small>
                 <div className="work-evidence">
                   {resultOption.evidence.map((item, index) => (
                     <div key={index} className={item.status}>
@@ -786,6 +789,7 @@ function WorkPanel({
           {mentorError && (
             <p className="inline-error" role="alert">
               {mentorError}
+              {pendingAnswerId && <Link href={`/answers/${pendingAnswerId}`} target="_blank" rel="noreferrer">Check saved answer</Link>}
               {!user && (
                 <Link href="/login">
                   Sign in

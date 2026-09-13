@@ -11,6 +11,7 @@ export async function serverSupabase() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) throw new Error("Account service is not configured.");
   return createServerClient(url, key, {
+    global: { fetch: (input, init) => fetch(input, { ...init, signal: init?.signal ? AbortSignal.any([init.signal, AbortSignal.timeout(8000)]) : AbortSignal.timeout(8000) }) },
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -36,6 +37,7 @@ export function adminSupabase() {
     throw new Error("The persistence service is not configured.");
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
+    global: { fetch: (input, init) => fetch(input, { ...init, signal: init?.signal ? AbortSignal.any([init.signal, AbortSignal.timeout(8000)]) : AbortSignal.timeout(8000) }) },
   });
 }
 

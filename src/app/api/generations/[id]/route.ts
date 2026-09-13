@@ -15,10 +15,11 @@ export async function GET(
   if (!user) return errorResponse("Sign in to read your saved answer.", 401);
   const { data, error } = await db
     .from("ai_generations")
-    .select("id,answer,mission_id,created_at,status")
+    .select("id,answer,mission_id,created_at,status,finished_at,lease_expires_at")
     .eq("id", id)
     .eq("user_id", user.id)
     .maybeSingle();
-  if (error || !data) return errorResponse("Answer not found.", 404);
+  if (error) return errorResponse("Saved answers are temporarily unavailable.", 503);
+  if (!data) return errorResponse("Answer not found.", 404);
   return Response.json(data, { headers: { "Cache-Control": "no-store" } });
 }
