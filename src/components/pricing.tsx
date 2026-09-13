@@ -3,6 +3,11 @@ import Link from "next/link";
 import { useState } from "react";
 import { ArrowRight, Check, Sparkles, LoaderCircle } from "lucide-react";
 import { useStudio } from "./app-provider";
+import { projects } from "@/lib/projects";
+const requestCount = projects.reduce(
+  (total, project) => total + project.work.length,
+  0,
+);
 export function Pricing({
   testMode,
   checkoutReady,
@@ -52,14 +57,16 @@ export function Pricing({
           <div className="price">
             €0<span>during early access</span>
           </div>
-          <p>A complete introduction to the way systems fit together.</p>
+          <p>
+            From a first web request to the tradeoffs behind resilient systems.
+          </p>
           <ul>
             {[
-              "20 connected simulation missions",
-              "Interactive system map and request explorer",
-              "Progressive hints and decision checkpoints",
-              "Your notebook and downloadable learning record",
-              "Account access to metered mentor and verification labs",
+              `${projects.length} projects across different industries`,
+              `${requestCount} team requests, incidents, and design decisions`,
+              "Visual systems, modeled consequences, and contextual hints",
+              "Your notes, decision history, and downloadable project records",
+              "Account access to the metered Gemini teammate",
             ].map((t) => (
               <li key={t}>
                 <Check size={16} />
@@ -67,8 +74,8 @@ export function Pricing({
               </li>
             ))}
           </ul>
-          <Link href="/studio" className="button secondary">
-            Start exploring
+          <Link href="/" className="button secondary">
+            Choose your first project
             <ArrowRight size={16} />
           </Link>
         </section>

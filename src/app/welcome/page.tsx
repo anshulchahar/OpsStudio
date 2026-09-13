@@ -10,10 +10,15 @@ import {
 } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { Blueprint } from "@/components/overview";
+import { projects } from "@/lib/projects";
+const requestCount = projects.reduce(
+  (total, project) => total + project.work.length,
+  0,
+);
 export const metadata = {
-  title: "Learn by bringing a system to life · OpsStudio",
+  title: "Practice engineering across real-world domains",
   description:
-    "An interactive DevSecOps workspace. Build a fictional insurance service, follow every change, and learn with a thoughtful AI teammate.",
+    "Join fictional teams across commerce, healthcare, payments, AI, and infrastructure. Rehearse DevSecOps decisions, see their consequences, and build your engineering record.",
 };
 export default function Welcome() {
   return (
@@ -21,9 +26,9 @@ export default function Welcome() {
       <nav>
         <Brand />
         <div>
-          <Link href="/journey">The learning path</Link>
+          <Link href="/">Explore projects</Link>
           <Link href="/login">Sign in</Link>
-          <Link href="/studio" className="button primary small">
+          <Link href="/" className="button primary small">
             Try the studio
             <ArrowUpRight size={14} />
           </Link>
@@ -33,7 +38,7 @@ export default function Welcome() {
         <section className="landing-hero">
           <div className="eyebrow">
             <span className="status-dot" />
-            DEVSECOPS / LEARN THROUGH ENGINEERING
+            DEVSECOPS / YOUR NEXT ENGINEERING TEAM
           </div>
           <h1>
             BUILD IT. BREAK IT.
@@ -41,17 +46,17 @@ export default function Welcome() {
             <span>UNDERSTAND IT.</span>
           </h1>
           <p>
-            An interactive workbench for the engineer you’re becoming.
+            A neighbourhood workshop. A payment company. An AI platform.
             <br />
-            Make the decisions. Watch the system change. Inspect the evidence.
+            Join the team. Make the decisions. See what your choices change.
           </p>
           <div className="landing-actions">
-            <Link href="/studio" className="button primary">
-              Enter your workspace
+            <Link href="/" className="button primary">
+              Find your first project
               <ArrowRight size={17} />
             </Link>
             <Link href="/journey" className="button secondary">
-              Explore the journey
+              See what needs doing
               <ArrowUpRight size={16} />
             </Link>
           </div>
@@ -66,14 +71,16 @@ export default function Welcome() {
             </span>
             <span>
               <Check size={13} />
-              Learn at your own pace
+              Revisit every decision
             </span>
           </div>
           <div className="landing-preview">
             <div className="landing-preview-top">
               <span className="northstar-mark">✦</span>
               <strong>Northstar Insurance</strong>
-              <span>PROJECT 001 / THE CLAIMS PLATFORM</span>
+              <span>
+                ONE OF {projects.length} PROJECTS / THE CLAIMS PLATFORM
+              </span>
             </div>
             <Blueprint />
             <div className="landing-preview-bottom">
@@ -91,6 +98,18 @@ export default function Welcome() {
               </span>
             </div>
           </div>
+          <div
+            className="landing-project-range"
+            aria-label="Explore the project collection"
+          >
+            {projects.map((project) => (
+              <Link href={`/projects/${project.id}`} key={project.id}>
+                <strong>{project.name}</strong>
+                <span>{project.industry}</span>
+                <ArrowUpRight size={14} />
+              </Link>
+            ))}
+          </div>
         </section>
         <section className="landing-how">
           <div className="eyebrow">THE IDEA IS SIMPLE</div>
@@ -100,17 +119,17 @@ export default function Welcome() {
               {
                 n: "01",
                 title: "Start with a problem.",
-                text: "A fictional insurer needs a claims service. Every mission starts with something a customer or engineering team needs.",
+                text: "A booking fails. A payment arrives twice. A hospital needs a safe recovery plan. Your work starts with a teammate asking for something that matters.",
               },
               {
                 n: "02",
-                title: "Make a change. Follow its journey.",
-                text: "Choose an action. Watch the architecture change, inspect the evidence, and explore what happens to a request.",
+                title: "Choose an approach. Rehearse it.",
+                text: "OpsStudio handles the modeled implementation. Follow the affected systems, inspect the generated configuration, and see the operational consequences.",
               },
               {
                 n: "03",
-                title: "Understand why. Then go further.",
-                text: "Explain the tradeoff in your own mind. A small hint or a Gemini conversation helps you find your next step.",
+                title: "Make it better. Take on more.",
+                text: "Compare the tradeoffs, revise a choice, and pick up another request. A small contextual hint or a Gemini conversation helps when you need a second perspective.",
               },
             ].map((item) => (
               <article key={item.n}>
@@ -126,22 +145,26 @@ export default function Welcome() {
           <div>
             <h2>Clear about what is real.</h2>
             <p>
-              The beta has 20 interactive missions and two real Node.js
-              verification recipes in disposable VMs. The architecture is a
-              labelled simulation. Account holders can ask Gemini for tailored
-              explanations; routine actions and hints use no AI credits.
+              Explore {requestCount} team requests across {projects.length}{" "}
+              fictional projects. The architecture, evidence, and measurements
+              are modeled, so you can try different decisions without
+              provisioning production systems. Account holders can ask Gemini
+              for a tailored second perspective; routine rehearsals and hints
+              use no AI credits.
             </p>
-            <Link href="/journey" className="text-link">
-              Explore all twenty missions
+            <Link href="/" className="text-link">
+              Explore the project shelf
               <ArrowRight size={14} />
             </Link>
           </div>
         </section>
         <section className="landing-final">
           <h2>Every engineer starts somewhere.</h2>
-          <p>Your first request starts here.</p>
-          <Link href="/studio" className="button primary">
-            Let’s build an understanding
+          <p>
+            Your first team is waiting. Start small and keep taking on more.
+          </p>
+          <Link href={`/projects/${projects[0].id}`} className="button primary">
+            Join {projects[0].name}
             <ArrowRight size={16} />
           </Link>
         </section>

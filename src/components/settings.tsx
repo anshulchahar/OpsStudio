@@ -21,7 +21,7 @@ type Account = {
   subscription: { status: string; live_mode: boolean } | null;
 };
 export function SettingsView() {
-  const { user, update, notify, sync } = useStudio();
+  const { user, update, notify, sync, ready } = useStudio();
   const router = useRouter();
   const [account, setAccount] = useState<Account | null>(null);
   const [reset, setReset] = useState(false);
@@ -95,7 +95,7 @@ export function SettingsView() {
             </button>
           ) : (
             <Link href="/login" className="button primary">
-              Save your journey with an account
+              Save your projects with an account
               <ArrowUpRight size={15} />
             </Link>
           )}
@@ -103,8 +103,8 @@ export function SettingsView() {
         <section className="settings-card">
           <h2>Thoughtful use of AI</h2>
           <p>
-            Gemini runs only when you send a question. Guided hints, mission
-            actions, and animations make no AI requests.
+            Gemini runs only when you send a question. Contextual hints,
+            rehearsals, and animations make no AI requests.
           </p>
           <div className="allowance">
             <Sparkles size={19} />
@@ -140,8 +140,8 @@ export function SettingsView() {
               : "Early access · free"}
           </span>
           <p>
-            The complete simulation journey is open during the beta. Explore the
-            foundations and help shape what comes next.
+            Every practice project is open during the beta. Try different
+            industries and help shape what comes next.
           </p>
           <div className="button-row">
             <Link href="/pricing" className="button secondary">
@@ -157,22 +157,24 @@ export function SettingsView() {
           </div>
         </section>
         <section className="settings-card">
-          <h2>Your learning data</h2>
+          <h2>Your project records</h2>
           <div className="privacy-note">
             <ShieldCheck size={22} />
             <p>
-              Your notebook and progress belong to your account. The fictional
-              Northstar project uses synthetic data; do not paste employer
-              credentials or customer records into your questions.
+              Your notes and project records stay on this device and sync when
+              signed in. Every organisation here uses synthetic data; do not
+              paste employer credentials or customer records into your
+              questions.
             </p>
           </div>
           <div className="button-row">
             <Link href="/notebook" className="button secondary">
-              Export your notebook
+              Export your engineering record
               <ArrowUpRight size={15} />
             </Link>
             <button
               className="text-link danger-text"
+              disabled={!ready}
               onClick={() => setReset(true)}
             >
               Start fresh
@@ -188,26 +190,29 @@ export function SettingsView() {
       <Dialog
         open={reset}
         onClose={() => setReset(false)}
-        title="Start this journey again?"
+        title="Clear all project records?"
       >
         <p className="dialog-intro">
-          This clears your mission progress, checkpoints, and notes in this
-          workspace. Export your notebook first if you want to keep a copy. Your
-          account and saved Gemini answers remain.
+          This clears every project’s decisions and change history, your notes,
+          and earlier Northstar work and checkpoints. If signed in, the reset
+          also syncs to your account. Export your engineering record first if
+          you want to keep a copy. Your account and saved Gemini answers remain.
         </p>
         <div className="button-row">
           <button className="button secondary" onClick={() => setReset(false)}>
-            Keep my progress
+            Keep my records
           </button>
           <button
             className="button danger"
+            disabled={!ready}
             onClick={() => {
-              update(() => emptyProgress);
+              if (!ready) return;
+              update(() => structuredClone(emptyProgress));
               setReset(false);
               notify("Your workspace is ready for a fresh start.");
             }}
           >
-            Clear my progress
+            Clear all project records
           </button>
         </div>
       </Dialog>

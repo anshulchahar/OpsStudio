@@ -21,24 +21,42 @@ import {
 import { Brand } from "./brand";
 import { useStudio } from "./app-provider";
 import { Dialog } from "./dialog";
-import { missions } from "@/lib/curriculum";
-import {
-  getLearningProgress,
-  isMissionUnlocked,
-} from "@/lib/learning-progress";
+import { projects, findProject } from "@/lib/projects";
+import { deriveProject, emptyProjectRun } from "@/lib/project-engine";
 
 const navigation = [
-  { href: "/", label: "Overview", icon: LayoutDashboard },
+  { href: "/", label: "Project shelf", icon: LayoutDashboard },
   { href: "/studio", label: "Workbench", icon: Network },
-  { href: "/journey", label: "Mission path", icon: Route },
-  { href: "/notebook", label: "Notebook", icon: NotebookPen },
+  { href: "/journey", label: "Operations board", icon: Route },
+  { href: "/notebook", label: "Engineering record", icon: NotebookPen },
   { href: "/updates", label: "Release radar", icon: Radar },
 ];
+const searchableWork = projects.flatMap((project) =>
+  project.work.map((work) => ({ project, work })),
+);
 export function Shell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const router = useRouter();
   const { user, progress, update, ready } = useStudio();
-  const learning = getLearningProgress(progress.completed);
+  const activeProject =
+    findProject(
+      path.startsWith("/projects/")
+        ? path.split("/")[2]
+        : progress.portfolio.activeProject,
+    ) ?? projects[0];
+  const projectState = deriveProject(
+    activeProject,
+    progress.portfolio.runs[activeProject.id] ?? emptyProjectRun(),
+  );
+  const shippedCount = projects.reduce(
+    (total, project) =>
+      total +
+      deriveProject(
+        project,
+        progress.portfolio.runs[project.id] ?? emptyProjectRun(),
+      ).shippedIds.length,
+    0,
+  );
   const [mobile, setMobile] = useState(false);
   const [search, setSearch] = useState(false);
   const [query, setQuery] = useState("");
@@ -55,13 +73,19 @@ export function Shell({ children }: { children: ReactNode }) {
   }, []);
   const pageTitle =
     path === "/"
-      ? "Workspace"
+      ? "Project shelf"
       : path === "/pricing"
         ? "Plans"
-        : navigation.find((n) => n.href === path)?.label || "Settings";
-  const results = missions
-    .filter((m) =>
-      `${m.title} ${m.concept}`.toLowerCase().includes(query.toLowerCase()),
+        : path === "/labs"
+          ? "Verification bench"
+          : path.startsWith("/projects/")
+            ? activeProject.name
+            : navigation.find((n) => n.href === path)?.label || "Settings";
+  const results = searchableWork
+    .filter(({ project, work }) =>
+      `${project.name} ${project.industry} ${work.title} ${work.brief} ${work.skills.join(" ")}`
+        .toLowerCase()
+        .includes(query.toLowerCase()),
     )
     .slice(0, 7);
   return (
@@ -89,11 +113,12 @@ export function Shell({ children }: { children: ReactNode }) {
         </div>
         <div className="workspace-switch">
           <span className="workspace-symbol">
-            N<span>✦</span>
+            {activeProject.name.slice(0, 1)}
+            <span>✦</span>
           </span>
           <div>
-            <strong>Northstar / 001</strong>
-            <span>TRAINING ENVIRONMENT</span>
+            <strong>{activeProject.name}</strong>
+            <span>PRACTICE ENVIRONMENT</span>
           </div>
         </div>
         <div className="nav-caption">WORKSPACE</div>
@@ -103,8 +128,13 @@ export function Shell({ children }: { children: ReactNode }) {
               key={href}
               href={href}
               onClick={() => setMobile(false)}
-              className={`nav-item ${path === href ? "selected" : ""}`}
-              aria-current={path === href ? "page" : undefined}
+              className={`nav-item ${path === href || (href === "/studio" && path.startsWith("/projects/")) ? "selected" : ""}`}
+              aria-current={
+                path === href ||
+                (href === "/studio" && path.startsWith("/projects/"))
+                  ? "page"
+                  : undefined
+              }
             >
               <Icon size={18} />
               <span>{label}</span>
@@ -117,22 +147,25 @@ export function Shell({ children }: { children: ReactNode }) {
           ))}
         </nav>
         <div className="sidebar-project">
-          <div className="nav-caption">YOUR PROJECT</div>
-          <Link href="/studio" onClick={() => setMobile(false)}>
+          <div className="nav-caption">ON YOUR DESK</div>
+          <Link
+            href={`/projects/${activeProject.id}`}
+            onClick={() => setMobile(false)}
+          >
             <span className="tiny-northstar">✦</span>
-            <span>Northstar Insurance</span>
+            <span>{activeProject.name}</span>
             <span className="project-active" />
           </Link>
           <div className="sidebar-progress">
-            <span>PROJECT COMPLETION</span>
+            <span>CHANGES SHIPPED</span>
             <strong>
-              {Math.round((learning.completedCount / missions.length) * 100)}%
+              {projectState.shippedIds.length} / {activeProject.work.length}
             </strong>
           </div>
           <div className="progress-track">
             <i
               style={{
-                width: `${(learning.completedCount / missions.length) * 100}%`,
+                width: `${(projectState.shippedIds.length / activeProject.work.length) * 100}%`,
               }}
             />
           </div>
@@ -141,7 +174,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <div className="sidebar-edition">
             <span className="sidebar-edition-mark">OS / 01</span>
             <p>ENGINEERING IS A PRACTICE.</p>
-            <span>Build · observe · improve</span>
+            <span>{shippedCount} changes across your projects</span>
           </div>
           <button className="nav-item" onClick={() => setHelp(true)}>
             <LifeBuoy size={18} />
@@ -162,7 +195,7 @@ export function Shell({ children }: { children: ReactNode }) {
               <strong>
                 {user ? user.email?.split("@")[0] : "Your workspace"}
               </strong>
-              <span>{user ? "Learner account" : "Exploring as a guest"}</span>
+              <span>{user ? "Personal account" : "Exploring as a guest"}</span>
             </div>
             <ChevronRight size={15} />
           </Link>
@@ -185,11 +218,11 @@ export function Shell({ children }: { children: ReactNode }) {
           <div className="topbar-actions">
             <button
               className="search-trigger"
-              aria-label="Search concepts"
+              aria-label="Search projects and work"
               onClick={() => setSearch(true)}
             >
               <Search size={16} />
-              <span>Find a concept…</span>
+              <span>Find a request…</span>
               <kbd>
                 <Command size={11} /> K
               </kbd>
@@ -216,14 +249,14 @@ export function Shell({ children }: { children: ReactNode }) {
           <span>OPSSTUDIO / AN ENGINEERING WORKSPACE</span>
           <span>
             <span className="status-dot" />
-            All exercises use synthetic data
+            All projects use synthetic data
           </span>
         </footer>
       </div>
       <Dialog
         open={search}
         onClose={() => setSearch(false)}
-        title="Find a concept"
+        title="Find work across your projects"
       >
         <div className="search-input">
           <Search size={18} />
@@ -231,37 +264,46 @@ export function Shell({ children }: { children: ReactNode }) {
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Try authentication, Git, or recovery…"
-            aria-label="Search missions"
+            placeholder="Try payments, Kubernetes, or recovery…"
+            aria-label="Search projects and requests"
           />
         </div>
         <div className="search-results">
-          {results.map((m) => (
+          {results.map(({ project, work }) => (
             <button
-              key={m.id}
-              disabled={
-                !ready ||
-                !isMissionUnlocked(missions.indexOf(m), progress.completed)
-              }
+              key={`${project.id}:${work.id}`}
+              disabled={!ready}
               onClick={() => {
-                update((p) => ({ ...p, activeMission: missions.indexOf(m) }));
+                update((p) => ({
+                  ...p,
+                  portfolio: {
+                    ...p.portfolio,
+                    activeProject: project.id,
+                    runs: {
+                      ...p.portfolio.runs,
+                      [project.id]: {
+                        ...(p.portfolio.runs[project.id] ?? emptyProjectRun()),
+                        activeWorkId: work.id,
+                      },
+                    },
+                  },
+                }));
                 setSearch(false);
-                router.push("/studio");
+                setMobile(false);
+                router.push(`/projects/${project.id}`);
               }}
             >
               <span>
-                {m.title}
+                {work.title}
                 <small>
-                  {isMissionUnlocked(missions.indexOf(m), progress.completed)
-                    ? m.subtitle
-                    : `Complete mission ${(learning.nextMissionIndex ?? 0) + 1} first`}
+                  {project.name} · {project.industry} · {work.kind}
                 </small>
               </span>
               <ArrowUpRight size={17} />
             </button>
           ))}
           {results.length === 0 && (
-            <p>No matching missions. Try a broader concept.</p>
+            <p>No matching requests. Try an industry or a technology.</p>
           )}
         </div>
       </Dialog>
@@ -272,32 +314,41 @@ export function Shell({ children }: { children: ReactNode }) {
       >
         <div className="help-copy">
           <p>
-            You’re on the engineering team at Northstar, a fictional insurer.
-            Your job is to understand the system and make good decisions.
-            OpsStudio handles the implementation steps.
+            Pick a fictional organisation and join its engineering team. A
+            community workshop, a payment company, a hospital, or a platform
+            team each has different problems worth solving.
           </p>
           <ol>
-            <li>Make a change. One button applies your mission’s action.</li>
-            <li>See the result. Follow what changed and why it matters.</li>
-            <li>Make a decision. Earn 100 XP and unlock the next mission.</li>
+            <li>
+              Read a teammate’s request and inspect the system it affects.
+            </li>
+            <li>
+              Choose an approach. OpsStudio rehearses the implementation for
+              you.
+            </li>
+            <li>
+              Inspect the evidence, see the consequences, and decide what to
+              improve.
+            </li>
           </ol>
           <p>
-            Hints are free, replays are for practice, and every four completed
-            missions earn a chapter badge. Code, requests, and experiments are
-            under Explore tools.
+            You can switch projects, revisit a decision, or try another
+            approach. Requests become ready when their technical dependencies
+            are in place. Your engineering record keeps the decisions and
+            tradeoffs you explored.
           </p>
           <p>
-            <strong>Simulation</strong> lets you explore safely at no API cost.{" "}
-            <strong>Real verification</strong> runs supported recipes in an
-            isolated environment. The <strong>Gemini mentor</strong> answers
-            your questions when you ask, with a small daily allowance.
+            <strong>Rehearsals</strong> use authored models and synthetic data.
+            They show consequences without provisioning real infrastructure.
+            Contextual hints are free. The <strong>Gemini teammate</strong>{" "}
+            answers your questions when you ask, with a small daily allowance.
           </p>
           <Link
-            href="/studio"
+            href="/"
             className="button primary"
             onClick={() => setHelp(false)}
           >
-            Open the workbench <ArrowUpRight size={16} />
+            Choose a project <ArrowUpRight size={16} />
           </Link>
         </div>
       </Dialog>

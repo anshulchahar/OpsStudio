@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { projectPortfolioSchema } from "./project-engine.ts";
 
 export const systemSchema = z.object({
   traced: z.boolean(),
@@ -579,6 +580,7 @@ export const savedProgressSchema = z.object({
       }),
     )
     .max(30),
+  portfolio: projectPortfolioSchema,
 });
 export type SavedProgress = z.infer<typeof savedProgressSchema>;
 export const emptyProgress: SavedProgress = {
@@ -589,4 +591,5 @@ export const emptyProgress: SavedProgress = {
   activeMission: 0,
   notes: "",
   checkpoints: [],
+  portfolio: projectPortfolioSchema.parse(undefined),
 };

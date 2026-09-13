@@ -1,5 +1,5 @@
-import { Journey } from "@/components/journey";
-export const metadata = { title: "Your learning path" };
+import { ProjectPortfolio } from "@/components/project-portfolio";
+export const metadata = { title: "Operations board" };
 export default function Page() {
-  return <Journey />;
+  return <ProjectPortfolio board />;
 }

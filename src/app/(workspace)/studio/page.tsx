@@ -1,5 +1,5 @@
-import { Studio } from "@/components/studio";
-export const metadata = { title: "The studio" };
+import { ProjectWorkspace } from "@/components/project-workspace";
+export const metadata = { title: "Your workspace" };
 export default function Page() {
-  return <Studio />;
+  return <ProjectWorkspace />;
 }
