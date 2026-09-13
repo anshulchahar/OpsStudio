@@ -204,7 +204,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         retry = active(session) && !record.conflicts.length;
       } catch {
         if (active(session)) {
-          setSync("Saved on this device · waiting to sync");
+          setSync(session.intents.length ? "Device save failed · retrying" : "Saved on this device · waiting to sync");
           retry = true;
         }
       } finally {
@@ -369,7 +369,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <StudioContext.Provider value={{ progress, update: (fn) => actions.current.update(fn), user, principalId: user?.id ?? "guest", clearLocalData: (id) => actions.current.clear(id), ready, sync, notify: setToast, toast }}>
       <MotionConfig reducedMotion="user">{children}</MotionConfig>
       {saveError && ready && <div className="sync-conflict-banner" role="alert"><span>{saveError}</span><button className="button primary small" onClick={() => actions.current.retry()}>Retry saving</button></div>}
-      {conflicts.length > 0 && <div className="sync-conflict-banner" role="status"><span>Your work is safe on this device. {conflicts.length} conflicting edit{conflicts.length === 1 ? "" : "s"} need a choice.</span><button className="button primary small" onClick={() => setConflictOpen(true)}>Review saved versions</button></div>}
+      {conflicts.length > 0 && !saveError && <div className="sync-conflict-banner" role="status"><span>Your work is safe on this device. {conflicts.length} conflicting edit{conflicts.length === 1 ? "" : "s"} need a choice.</span><button className="button primary small" onClick={() => setConflictOpen(true)}>Review saved versions</button></div>}
       {!ready && sync !== "Loading your saved work…" && <div className="sync-conflict-banner" role="alert"><span>{sync}</span><button className="button primary small" onClick={() => actions.current.retry()}>Retry</button></div>}
       <Dialog open={Boolean(conflict && conflictOpen)} onClose={() => setConflictOpen(false)} title="Keep the work you intended">
         {conflict && <><p>{conflict.title}. Nothing will overwrite your account until you choose.</p><div className="sync-conflict-versions"><section><h3>This device’s draft</h3><pre>{describe(conflict.local)}</pre></section><section><h3>Other saved version</h3><pre>{describe(conflict.remote)}</pre></section></div><div className="dialog-actions"><button className="button primary" onClick={() => actions.current.resolve(conflict.id, "local")}>Keep this draft</button><button className="button secondary" onClick={() => actions.current.resolve(conflict.id, "remote")}>Use other version</button>{conflict.kind === "notes" && <button className="button secondary" onClick={() => actions.current.resolve(conflict.id, "both")}>Combine both notes</button>}<button className="button secondary" onClick={() => { const url = URL.createObjectURL(new Blob([JSON.stringify({ conflicts, progress }, null, 2)], { type: "application/json" })); const link = document.createElement("a"); link.href = url; link.download = "opsstudio-conflicting-versions.json"; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }}>Download both versions</button></div></>}
